@@ -184,6 +184,8 @@ mengakses data sekolahnya; menyebut `school_id` sekolah lain akan menghasilkan
         crate::routes::me::home,
         crate::routes::me::attendance,
         crate::routes::me::recap,
+        crate::routes::me::notifications,
+        crate::routes::me::mark_notifications_read,
         // Panic Button
         crate::routes::panic::categories,
         crate::routes::panic::feed,
@@ -323,6 +325,8 @@ mengakses data sekolahnya; menyebut `school_id` sekolah lain akan menghasilkan
             crate::domain::document::ReviewFileRequest,
             // Jargon GO
             crate::routes::me::HomeSummary,
+            crate::routes::me::AppNotification,
+            crate::routes::me::NotificationList,
             crate::routes::me::StudentTodayCard,
             crate::routes::me::SchoolTodayCard,
             // Dashboard

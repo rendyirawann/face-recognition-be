@@ -10,7 +10,9 @@
 //!    diberi tahu dan rekap bulanan menghitungnya sebagai "tidak ada data".
 //! 3. **Rollup** — mengisi `attendance_daily_summary` agar dashboard tidak
 //!    perlu memindai tabel 160 juta baris.
-//! 4. **Bersih-bersih** — buang token kedaluwarsa, heartbeat lama, dan
+//! 4. **Keterlambatan beruntun** — beri tahu sekolah, capdis, dan disdik
+//!    bila seorang siswa telat beberapa hari sekolah berturut-turut.
+//! 5. **Bersih-bersih** — buang token kedaluwarsa, heartbeat lama, dan
 //!    kunci idempotensi yang sudah lewat.
 
 use std::time::Duration;
@@ -35,6 +37,7 @@ pub async fn run(state: AppState, shutdown: tokio::sync::watch::Receiver<bool>) 
     }
 
     let mut last_absentee_run: Option<chrono::NaiveDate> = None;
+    let mut last_streak_run: Option<chrono::NaiveDate> = None;
     let mut last_rollup_hour: Option<u32> = None;
     let mut shutdown = shutdown;
 
@@ -55,6 +58,18 @@ pub async fn run(state: AppState, shutdown: tokio::sync::watch::Receiver<bool>) 
                     Ok(ran) if ran => last_absentee_run = Some(today),
                     Ok(_) => {}
                     Err(e) => tracing::error!(error = ?e, "gagal menandai siswa alfa"),
+                }
+
+                // Keterlambatan beruntun, sekali sehari setelah jam alfa
+                // supaya absensi hari itu sudah lengkap.
+                if now.hour() >= 10 {
+                    match notify_late_streaks(&state, last_streak_run).await {
+                        Ok(true) => last_streak_run = Some(today),
+                        Ok(false) => {}
+                        Err(e) => tracing::error!(
+                            error = ?e, "gagal memeriksa keterlambatan beruntun"
+                        ),
+                    }
                 }
 
                 // Rollup tiap jam.
@@ -240,6 +255,111 @@ async fn notify_absentees(
     }
 
     Ok(())
+}
+
+/// Beri tahu sekolah, capdis, dan disdik tentang siswa yang telat berturut-turut.
+///
+/// Rentetan dihitung dari BARIS ABSENSI, bukan hari kalender: hanya hari
+/// sekolah yang punya baris, sehingga akhir pekan dan libur tidak memutus
+/// rentetan, sementara satu hari hadir tepat waktu memutusnya.
+///
+/// Ambang harinya diambil dari setelan `late_streak_days`.
+async fn notify_late_streaks(
+    state: &AppState,
+    last_run: Option<chrono::NaiveDate>,
+) -> anyhow::Result<bool> {
+    let today = util::now_wib().date_naive();
+    if last_run == Some(today) {
+        return Ok(false);
+    }
+
+    let days: i64 = sqlx::query_scalar(
+        "SELECT COALESCE((SELECT value::int FROM settings WHERE key = 'late_streak_days'), 3)",
+    )
+    .fetch_one(&state.db)
+    .await?;
+
+    // Satu pernyataan: cari rentetan, tentukan penerimanya, lalu sisipkan.
+    // Dipilih begitu karena jumlah penerimanya kecil per siswa, dan
+    // memisahkannya menjadi query-per-siswa akan menghasilkan ribuan
+    // perjalanan bolak-balik pada pagi setelah libur panjang.
+    let inserted = sqlx::query(
+        r#"
+        WITH terakhir AS (
+            SELECT a.student_id,
+                   a.school_id,
+                   a.attendance_date,
+                   a.status,
+                   row_number() OVER (
+                       PARTITION BY a.student_id ORDER BY a.attendance_date DESC
+                   ) AS rn
+              FROM attendances a
+             WHERE a.attendance_date > $1::date - INTERVAL '45 days'
+               AND a.attendance_date <= $1::date
+        ),
+        rentetan AS (
+            SELECT student_id, school_id, max(attendance_date) AS tanggal
+              FROM terakhir
+             WHERE rn <= $2
+             GROUP BY student_id, school_id
+            HAVING count(*) = $2
+               AND bool_and(status = 'terlambat')
+               -- Hanya rentetan yang hari terakhirnya HARI INI. Tanpa ini,
+               -- rentetan lama ikut terkirim setiap kali pekerja berjalan.
+               AND max(attendance_date) = $1::date
+        ),
+        sasaran AS (
+            SELECT r.student_id, r.school_id, r.tanggal, s.full_name, sc.name AS sekolah,
+                   u.id AS user_id
+              FROM rentetan r
+              JOIN students s  ON s.id = r.student_id
+              JOIN schools sc  ON sc.id = r.school_id
+              JOIN users u ON (
+                       -- Sekolah dan admin sekolah itu sendiri.
+                       (u.school_id = r.school_id
+                        AND EXISTS (SELECT 1 FROM model_has_roles mr
+                                      JOIN roles ro ON ro.id = mr.role_id
+                                     WHERE mr.model_id = u.id
+                                       AND ro.name IN ('sekolah', 'admin', 'kepala_sekolah')))
+                       -- Capdis: region_id-nya induk dari region sekolah.
+                    OR (u.region_id IS NOT NULL
+                        AND u.region_id = (SELECT rg.parent_id FROM regions rg
+                                            WHERE rg.id = sc.region_id)
+                        AND EXISTS (SELECT 1 FROM model_has_roles mr
+                                      JOIN roles ro ON ro.id = mr.role_id
+                                     WHERE mr.model_id = u.id AND ro.name = 'capdis'))
+                       -- Disdik: seluruh provinsi.
+                    OR EXISTS (SELECT 1 FROM model_has_roles mr
+                                 JOIN roles ro ON ro.id = mr.role_id
+                                WHERE mr.model_id = u.id AND ro.name = 'admin_dinas')
+                   )
+             WHERE u.is_active AND u.deleted_at IS NULL
+        )
+        INSERT INTO app_notifications
+              (user_id, school_id, kind, title, body, payload, dedupe_key)
+        SELECT user_id,
+               school_id,
+               'telat_beruntun',
+               full_name || ' terlambat ' || $2 || ' hari berturut-turut',
+               full_name || ' di ' || sekolah || ' tercatat terlambat ' || $2 ||
+                   ' hari sekolah berturut-turut hingga ' ||
+                   to_char(tanggal, 'DD-MM-YYYY') || '.',
+               jsonb_build_object('student_id', student_id, 'tanggal', tanggal),
+               'telat' || $2 || ':' || student_id || ':' || tanggal || ':' || user_id
+          FROM sasaran
+        ON CONFLICT (dedupe_key) DO NOTHING
+        "#,
+    )
+    .bind(today)
+    .bind(days)
+    .execute(&state.db)
+    .await?
+    .rows_affected();
+
+    if inserted > 0 {
+        tracing::info!(inserted, days, "notifikasi keterlambatan beruntun dibuat");
+    }
+    Ok(true)
 }
 
 async fn cleanup(state: &AppState) -> anyhow::Result<()> {

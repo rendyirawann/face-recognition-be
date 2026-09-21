@@ -10,7 +10,7 @@
 //!   hanya melihat anaknya sendiri.
 
 use axum::extract::{Path, State};
-use axum::routing::get;
+use axum::routing::{get, post};
 use axum::Router;
 use chrono::{Datelike, NaiveDate};
 use serde::Serialize;
@@ -29,6 +29,8 @@ pub fn router() -> Router<AppState> {
         .route("/me/home", get(home))
         .route("/me/attendance", get(attendance))
         .route("/me/attendance/{student_id}/recap", get(recap))
+        .route("/me/notifications", get(notifications))
+        .route("/me/notifications/read", post(mark_notifications_read))
 }
 
 /// Ringkasan beranda aplikasi.
@@ -512,4 +514,96 @@ mod tests {
     fn sapaan_untuk_nama_satu_kata() {
         assert!(greeting_for("Aisyah").ends_with(", Aisyah"));
     }
+}
+
+// =====================================================================
+// Kotak masuk notifikasi
+// =====================================================================
+
+#[derive(Debug, Serialize, ToSchema)]
+pub struct AppNotification {
+    pub id: Uuid,
+    pub kind: String,
+    pub title: String,
+    pub body: String,
+    pub payload: serde_json::Value,
+    pub is_read: bool,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+}
+
+#[derive(Debug, Serialize, ToSchema)]
+pub struct NotificationList {
+    pub unread: i64,
+    pub items: Vec<AppNotification>,
+}
+
+/// Notifikasi dalam aplikasi untuk akun yang sedang masuk.
+#[utoipa::path(
+    get, path = "/v1/me/notifications", tag = "Jargon GO",
+    security(("bearer" = [])),
+    responses((status = 200, description = "Daftar notifikasi", body = NotificationList))
+)]
+pub async fn notifications(
+    State(state): State<AppState>,
+    user: AuthUser,
+) -> ApiResult<ApiResponse<NotificationList>> {
+    // Dibatasi 50 terbaru. Kotak masuk ini dibaca dari ponsel; daftar tanpa
+    // batas akan menarik ribuan baris pada akun dinas yang memantau seluruh
+    // provinsi.
+    let rows: Vec<(Uuid, String, String, String, serde_json::Value, Option<chrono::DateTime<chrono::Utc>>, chrono::DateTime<chrono::Utc>)> =
+        sqlx::query_as(
+            r#"
+            SELECT id, kind, title, body, payload, read_at, created_at
+              FROM app_notifications
+             WHERE user_id = $1
+             ORDER BY created_at DESC
+             LIMIT 50
+            "#,
+        )
+        .bind(user.id)
+        .fetch_all(&state.db)
+        .await?;
+
+    let unread: i64 = sqlx::query_scalar(
+        "SELECT count(*) FROM app_notifications WHERE user_id = $1 AND read_at IS NULL",
+    )
+    .bind(user.id)
+    .fetch_one(&state.db)
+    .await?;
+
+    let items = rows
+        .into_iter()
+        .map(|(id, kind, title, body, payload, read_at, created_at)| AppNotification {
+            id,
+            kind,
+            title,
+            body,
+            payload,
+            is_read: read_at.is_some(),
+            created_at,
+        })
+        .collect();
+
+    Ok(ApiResponse::new(NotificationList { unread, items }))
+}
+
+/// Tandai seluruh notifikasi sebagai sudah dibaca.
+#[utoipa::path(
+    post, path = "/v1/me/notifications/read", tag = "Jargon GO",
+    security(("bearer" = [])),
+    responses((status = 200, description = "Jumlah yang ditandai"))
+)]
+pub async fn mark_notifications_read(
+    State(state): State<AppState>,
+    user: AuthUser,
+) -> ApiResult<ApiResponse<serde_json::Value>> {
+    let n = sqlx::query(
+        "UPDATE app_notifications SET read_at = NOW() WHERE user_id = $1 AND read_at IS NULL",
+    )
+    .bind(user.id)
+    .execute(&state.db)
+    .await?
+    .rows_affected();
+
+    Ok(ApiResponse::new(serde_json::json!({ "ditandai": n })))
 }
