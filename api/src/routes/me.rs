@@ -55,6 +55,19 @@ pub struct HomeSummary {
 /// ponsel harus lebih sempit daripada itu.
 const ADMIN_FACE_ROLES: [&str; 2] = ["superadmin", "admin_dinas"];
 
+/// Menu di aplikasi dibatasi PERAN, bukan hanya izin.
+///
+/// Izin yang sama dipakai dashboard web: `view_panic_feed` harus tetap
+/// dimiliki `sekolah`, `capdis`, dan `admin_dinas` agar mereka bisa menangani
+/// laporan di web. Menyaring menu mobile lewat izin itu akan ikut mencabut
+/// akses web mereka.
+const PANIC_MENU_ROLES: [&str; 3] = ["superadmin", "admin", "siswa"];
+const PEMBERKASAN_MENU_ROLES: [&str; 1] = ["guru"];
+
+fn has_any_role(user: &AuthUser, roles: &[&str]) -> bool {
+    user.roles.iter().any(|r| roles.contains(&r.as_str()))
+}
+
 #[derive(Debug, Serialize, ToSchema)]
 pub struct StudentTodayCard {
     pub student_id: Uuid,
@@ -144,12 +157,10 @@ pub async fn home(
     {
         available_menus.push("absensi".to_string());
     }
-    if user.has_permission("view_panic_feed") {
+    if user.has_permission("view_panic_feed") && has_any_role(&user, &PANIC_MENU_ROLES) {
         available_menus.push("panic_button".to_string());
     }
-    if user.has_permission("create_document_submission")
-        || user.has_permission("verify_document_submission")
-    {
+    if has_any_role(&user, &PEMBERKASAN_MENU_ROLES) {
         available_menus.push("pemberkasan".to_string());
     }
 
@@ -164,7 +175,7 @@ pub async fn home(
     //
     // Guru tetap dapat mendaftarkan wajah lewat dashboard /admin; yang
     // tidak diberikan adalah pintu absensi di ponsel.
-    if user.roles.iter().any(|r| ADMIN_FACE_ROLES.contains(&r.as_str())) {
+    if has_any_role(&user, &ADMIN_FACE_ROLES) {
         available_menus.push("face_recognition".to_string());
     }
 
