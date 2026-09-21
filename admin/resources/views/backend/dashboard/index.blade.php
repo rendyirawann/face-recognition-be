@@ -243,6 +243,102 @@
         </div>
     </div>
 
+    {{-- ====== Perbandingan wilayah: hanya cakupan provinsi (Disdik) ====== --}}
+    @if ($isProvince && ! $schoolId && isset($capdisRates))
+        <div class="card card-flush mb-5 border border-gray-200">
+            <div class="card-header pt-5">
+                <h3 class="card-title fw-bold">Kehadiran per Cabang Dinas</h3>
+                <div class="card-toolbar">
+                    <span class="text-muted fs-8">{{ $date->translatedFormat('d F Y') }}</span>
+                </div>
+            </div>
+            <div class="card-body pt-3">
+                <div class="table-responsive">
+                    <table class="table table-row-dashed align-middle gy-3 mb-0">
+                        <thead>
+                            <tr class="fw-semibold text-muted fs-8 text-uppercase">
+                                <th>Wilayah</th>
+                                <th class="text-end">Sekolah</th>
+                                <th class="text-end">Siswa</th>
+                                <th class="text-end">Hadir</th>
+                                <th class="text-end" style="width:160px">Kehadiran</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse ($capdisRates as $w)
+                                @php $rate = (float) ($w->rate ?? 0); @endphp
+                                <tr>
+                                    <td class="fw-semibold fs-7">{{ $w->wilayah }}</td>
+                                    <td class="text-end fs-7">{{ number_format($w->jumlah_sekolah) }}</td>
+                                    <td class="text-end fs-7">{{ number_format($w->total_siswa) }}</td>
+                                    <td class="text-end fs-7">{{ number_format($w->hadir) }}</td>
+                                    <td class="text-end">
+                                        <div class="d-flex align-items-center justify-content-end">
+                                            <div class="progress h-6px w-100px me-3 bg-light">
+                                                <div class="progress-bar bg-{{ $rate >= 85 ? 'success' : ($rate >= 70 ? 'warning' : 'danger') }}"
+                                                     style="width: {{ min(100, max(0, $rate)) }}%"></div>
+                                            </div>
+                                            <span class="fw-bold fs-8" style="width:44px">{{ $rate }}%</span>
+                                        </div>
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="5" class="text-muted fs-7 text-center py-4">
+                                        Belum ada sekolah yang terhubung ke wilayah Cabang Dinas.
+                                        Jalankan migrasi seed sekolah terlebih dahulu.
+                                    </td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    {{-- ============== Panel wilayah: khusus Cabang Dinas ============== --}}
+    @if ($scope === 'wilayah' && ! $schoolId)
+        <div class="row g-5 mb-5">
+            <div class="col-xl-4">
+                <div class="card card-flush h-100 border border-gray-200">
+                    <div class="card-header pt-5">
+                        <h3 class="card-title fw-bold">Wilayah Anda</h3>
+                    </div>
+                    <div class="card-body pt-3">
+                        <div class="d-flex justify-content-between mb-3">
+                            <span class="text-muted fs-7">Cabang Dinas</span>
+                            <span class="fw-bold">{{ $region?->name ?? '-' }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-3">
+                            <span class="text-muted fs-7">Sekolah dalam cakupan</span>
+                            <span class="fw-bold">{{ number_format($regionSchools ?? 0) }}</span>
+                        </div>
+                        <div class="separator my-4"></div>
+                        <p class="text-muted fs-8 mb-0">
+                            Seluruh angka pada halaman ini sudah dibatasi wilayah Anda.
+                            Sekolah di wilayah lain tidak dapat dilihat dari akun ini.
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-4">
+                @include('backend.dashboard._peringkat', [
+                    'judul' => 'Kehadiran Terendah',
+                    'rows' => $lowestSchools,
+                    'warna' => 'danger',
+                ])
+            </div>
+            <div class="col-xl-4">
+                @include('backend.dashboard._peringkat', [
+                    'judul' => 'Kehadiran Tertinggi',
+                    'rows' => $topSchools,
+                    'warna' => 'success',
+                ])
+            </div>
+        </div>
+    @endif
+
     {{-- ============== Panel khusus: provinsi vs sekolah ============== --}}
     @if ($isProvince && ! $schoolId)
         <div class="row g-5 mb-5">

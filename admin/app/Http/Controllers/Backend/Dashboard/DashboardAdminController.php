@@ -35,10 +35,13 @@ class DashboardAdminController extends Controller
         $date = $this->resolveDate($request);
         $schoolId = Tenant::currentSchoolId($request->query('school_id'));
         $isProvince = Tenant::isProvinceScope();
+        $scope = Tenant::scope();
 
         $data = [
             'date' => $date,
             'isProvince' => $isProvince,
+            'scope' => $scope,
+            'region' => Tenant::currentRegion(),
             'schoolId' => $schoolId,
             'school' => $schoolId ? School::find($schoolId) : null,
             'schools' => $isProvince ? Tenant::selectableSchools() : collect(),
@@ -54,7 +57,14 @@ class DashboardAdminController extends Controller
             $data['provinceStats'] = $this->provinceStats($date);
             $data['lowestSchools'] = $this->schoolRates($date, 'asc');
             $data['topSchools'] = $this->schoolRates($date, 'desc');
+            $data['capdisRates'] = $this->capdisRates($date);
             $data['apiHealth'] = AbsensiApi::make()->health();
+        } elseif ($scope === 'wilayah' && $schoolId === null) {
+            // Capdis melihat wilayahnya sendiri: peringkat sekolah dibatasi
+            // daftar sekolah yang menjadi cakupannya, bukan seluruh provinsi.
+            $data['lowestSchools'] = $this->schoolRates($date, 'asc', Tenant::schoolIds());
+            $data['topSchools'] = $this->schoolRates($date, 'desc', Tenant::schoolIds());
+            $data['regionSchools'] = $this->regionSchoolCount();
         } else {
             $data['classrooms'] = $this->classroomSummary($schoolId, $date);
             $data['pendingFaces'] = $this->studentsWithoutFace($schoolId);
@@ -334,8 +344,21 @@ class DashboardAdminController extends Controller
      * yang belum memasang tablet akan selalu tampak 0% dan mengubur sekolah
      * yang betulan bermasalah.
      */
-    private function schoolRates(Carbon $date, string $direction)
+    private function schoolRates(Carbon $date, string $direction, ?array $onlySchools = null)
     {
+        // Pembatasan wilayah dipasang sebagai klausa terpisah, bukan dengan
+        // membangun IN (...) dari string: daftarnya berasal dari basis data,
+        // tetapi menyusunnya jadi SQL tetap membuka jalan yang tidak perlu.
+        $bind = [$date->toDateString()];
+        $filter = '';
+        if ($onlySchools !== null) {
+            if ($onlySchools === []) {
+                return collect();
+            }
+            $filter = ' AND s.id = ANY(?)';
+            $bind[] = '{'.implode(',', $onlySchools).'}';
+        }
+
         return collect(DB::select("
             WITH aktif AS (
                 SELECT school_id, COUNT(*) AS total
@@ -354,9 +377,57 @@ class DashboardAdminController extends Controller
             FROM schools s
             JOIN aktif a ON a.school_id = s.id
             JOIN hadir h ON h.school_id = s.id
-            WHERE s.deleted_at IS NULL AND s.is_active
+            WHERE s.deleted_at IS NULL AND s.is_active".$filter."
             ORDER BY rate ".($direction === 'asc' ? 'ASC' : 'DESC')."
             LIMIT 10
+        ", $bind));
+    }
+
+    /**
+     * Tingkat kehadiran per wilayah Cabang Dinas.
+     *
+     * Hanya untuk cakupan provinsi — inilah tampilan yang membedakan Disdik
+     * dari Capdis: Disdik membandingkan ke-14 wilayah, Capdis melihat isi
+     * satu wilayah.
+     */
+    private function capdisRates(Carbon $date)
+    {
+        return collect(DB::select("
+            WITH sekolah AS (
+                SELECT s.id, w.id AS wilayah_id, w.name AS wilayah
+                  FROM schools s
+                  JOIN regions k ON k.id = s.region_id
+                  JOIN regions w ON w.id = k.parent_id AND w.kind = 'cabang_dinas'
+                 WHERE s.deleted_at IS NULL AND s.is_active
+            ),
+            aktif AS (
+                SELECT school_id, COUNT(*) AS total
+                  FROM students WHERE deleted_at IS NULL AND status = 'aktif'
+                 GROUP BY school_id
+            ),
+            hadir AS (
+                SELECT school_id,
+                       COUNT(*) FILTER (WHERE status IN ('hadir','terlambat','dispensasi')) AS present
+                  FROM attendances WHERE attendance_date = ?
+                 GROUP BY school_id
+            )
+            SELECT sk.wilayah_id, sk.wilayah,
+                   COUNT(DISTINCT sk.id) AS jumlah_sekolah,
+                   COALESCE(SUM(a.total), 0) AS total_siswa,
+                   COALESCE(SUM(h.present), 0) AS hadir,
+                   ROUND(COALESCE(SUM(h.present), 0)::numeric
+                         / NULLIF(SUM(a.total), 0) * 100, 1) AS rate
+              FROM sekolah sk
+              LEFT JOIN aktif a ON a.school_id = sk.id
+              LEFT JOIN hadir h ON h.school_id = sk.id
+             GROUP BY sk.wilayah_id, sk.wilayah
+             ORDER BY sk.wilayah
         ", [$date->toDateString()]));
+    }
+
+    /** Jumlah sekolah dalam cakupan pengguna wilayah. */
+    private function regionSchoolCount(): int
+    {
+        return count(Tenant::schoolIds() ?? []);
     }
 }

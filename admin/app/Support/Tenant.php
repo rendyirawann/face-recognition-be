@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Models\Region;
 use App\Models\School;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
@@ -12,7 +13,8 @@ use Illuminate\Support\Facades\Cache;
  * Tenant sistem ini adalah SEKOLAH. Aturannya:
  *
  *   - superadmin / admin_dinas  -> cakupan PROVINSI (users.school_id NULL)
- *   - kepala_sekolah/guru/staff -> hanya sekolahnya sendiri
+ *   - capdis                    -> seluruh sekolah di WILAYAH-nya
+ *   - sekolah/admin/kepala/guru -> hanya sekolahnya sendiri
  *   - pengawas                  -> beberapa sekolah (user_school_scopes)
  *
  * Semua penyaringan tenant di dashboard melewati kelas ini. Menaruh aturan
@@ -22,6 +24,50 @@ use Illuminate\Support\Facades\Cache;
 class Tenant
 {
     public const PROVINCE_ROLES = ['superadmin', 'admin_dinas'];
+
+    /** Peran yang cakupannya satu wilayah Cabang Dinas. */
+    public const REGION_ROLES = ['capdis'];
+
+    /**
+     * Cakupan pengguna aktif: `provinsi`, `wilayah`, atau `sekolah`.
+     *
+     * Dipakai dashboard untuk memilih tampilan, dan oleh [schoolIds] untuk
+     * memilih cara menyaring.
+     */
+    public static function scope(): string
+    {
+        $user = Auth::user();
+        if (! $user) {
+            return 'sekolah';
+        }
+        if ($user->hasAnyRole(self::PROVINCE_ROLES)) {
+            return 'provinsi';
+        }
+        if ($user->hasAnyRole(self::REGION_ROLES)) {
+            return 'wilayah';
+        }
+
+        return 'sekolah';
+    }
+
+    /** True bila cakupannya satu wilayah Cabang Dinas. */
+    public static function isRegionScope(): bool
+    {
+        return self::scope() === 'wilayah';
+    }
+
+    /**
+     * Wilayah Cabang Dinas pengguna aktif, atau null.
+     */
+    public static function currentRegion(): ?Region
+    {
+        $user = Auth::user();
+        if (! $user || ! $user->region_id) {
+            return null;
+        }
+
+        return Region::find($user->region_id);
+    }
 
     /**
      * True bila pengguna aktif boleh melihat lintas sekolah.
@@ -56,6 +102,21 @@ class Tenant
             "tenant:schools:{$user->id}",
             now()->addMinutes(10),
             function () use ($user) {
+                // Capdis: seluruh sekolah yang region-nya berinduk ke wilayah
+                // pengguna. Diturunkan dari hierarki, BUKAN daftar manual —
+                // sekolah baru otomatis masuk cakupan begitu region_id-nya
+                // diisi, tanpa ada yang harus memperbarui pemetaan.
+                if (self::isRegionScope() && $user->region_id) {
+                    return School::query()
+                        ->whereNull('deleted_at')
+                        ->whereIn('region_id', function ($q) use ($user) {
+                            $q->select('id')->from('regions')
+                              ->where('parent_id', $user->region_id);
+                        })
+                        ->pluck('id')
+                        ->all();
+                }
+
                 $ids = [];
                 if ($user->school_id) {
                     $ids[] = $user->school_id;
