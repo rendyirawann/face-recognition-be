@@ -208,8 +208,14 @@ SELECT ensure_attendance_partitions(6);
 -- ------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS attendance_daily_summary (
     school_id       UUID NOT NULL REFERENCES schools (id) ON DELETE CASCADE,
-    -- Kolom PK tidak boleh NULL, jadi baris agregat tingkat sekolah memakai
-    -- UUID nil sebagai penanda "seluruh sekolah".
+    -- Kolom PK tidak boleh NULL, jadi absensi yang tidak terikat kelas
+    -- disimpan dengan UUID nil.
+    --
+    -- KOREKSI: komentar sebelumnya menyebut nil sebagai penanda "seluruh
+    -- sekolah". Itu tidak sesuai dengan penulisnya — `rebuild_daily_rollup`
+    -- mengelompokkan per `a.classroom_id` dan memakai nil hanya sebagai
+    -- pengganti NULL. Tidak ada baris agregat tingkat sekolah di tabel ini;
+    -- totalnya harus dijumlahkan lintas kelas.
     classroom_id    UUID NOT NULL DEFAULT '00000000-0000-0000-0000-000000000000',
     summary_date    DATE NOT NULL,
     total_students  INTEGER NOT NULL DEFAULT 0,

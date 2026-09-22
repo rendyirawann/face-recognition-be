@@ -285,7 +285,21 @@ async fn notify_late_streaks(
     // perjalanan bolak-balik pada pagi setelah libur panjang.
     let inserted = sqlx::query(
         r#"
-        WITH terakhir AS (
+        -- Disaring DULU ke siswa yang telat HARI INI, baru jendelanya
+        -- dihitung.
+        --
+        -- Rentetan apa pun yang layak diberitahukan pasti berakhir hari ini,
+        -- jadi siswa yang hari ini tidak telat tidak mungkin memenuhi
+        -- syarat. Tanpa penyaringan ini, jendela dihitung untuk SELURUH
+        -- siswa selama 45 hari — pada skala provinsi itu belasan juta baris
+        -- setiap hari, dan hampir semuanya langsung dibuang oleh HAVING.
+        WITH telat_hari_ini AS (
+            SELECT student_id
+              FROM attendances
+             WHERE attendance_date = $1::date
+               AND status = 'terlambat'
+        ),
+        terakhir AS (
             SELECT a.student_id,
                    a.school_id,
                    a.attendance_date,
@@ -294,6 +308,7 @@ async fn notify_late_streaks(
                        PARTITION BY a.student_id ORDER BY a.attendance_date DESC
                    ) AS rn
               FROM attendances a
+              JOIN telat_hari_ini t ON t.student_id = a.student_id
              WHERE a.attendance_date > $1::date - INTERVAL '45 days'
                AND a.attendance_date <= $1::date
         ),

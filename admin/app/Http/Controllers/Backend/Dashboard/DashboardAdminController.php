@@ -346,6 +346,14 @@ class DashboardAdminController extends Controller
      */
     private function schoolRates(Carbon $date, string $direction, ?array $onlySchools = null)
     {
+        // Sama seperti capdisRates: pembilang dari rollup, penyebut dari
+        // tabel siswa.
+        //
+        // Penyebutnya sengaja TIDAK diambil dari `total_students` milik
+        // rollup. Kolom itu menghitung siswa yang PUNYA baris absensi hari
+        // itu, bukan siswa aktif — dan sebelum penandaan alfa berjalan pagi
+        // hari keduanya berbeda jauh. Memakainya akan menampilkan kehadiran
+        // 100% pada pukul tujuh pagi di setiap sekolah.
         // Pembatasan wilayah dipasang sebagai klausa terpisah, bukan dengan
         // membangun IN (...) dari string: daftarnya berasal dari basis data,
         // tetapi menyusunnya jadi SQL tetap membuka jalan yang tidak perlu.
@@ -367,8 +375,8 @@ class DashboardAdminController extends Controller
             ),
             hadir AS (
                 SELECT school_id,
-                       COUNT(*) FILTER (WHERE status IN ('hadir','terlambat','dispensasi')) AS present
-                FROM attendances WHERE attendance_date = ?
+                       SUM(hadir + terlambat + dispensasi) AS present
+                FROM attendance_daily_summary WHERE summary_date = ?
                 GROUP BY school_id
             )
             SELECT s.id, s.name, s.jenjang, a.total AS total_students,
@@ -405,10 +413,21 @@ class DashboardAdminController extends Controller
                   FROM students WHERE deleted_at IS NULL AND status = 'aktif'
                  GROUP BY school_id
             ),
+            -- Angka hadir diambil dari rollup harian, BUKAN dari tabel
+            -- absensi mentah. Perbandingan 14 wilayah menyentuh seluruh
+            -- sekolah provinsi; menghitungnya dari `attendances` berarti
+            -- mengagregasi ratusan ribu baris pada setiap kali halaman
+            -- dibuka. Rollup sudah diringkas per sekolah per kelas oleh
+            -- pekerja pemeliharaan.
+            --
+            -- Konsekuensinya angka hari ini bisa tertinggal sampai satu jam,
+            -- karena rollup dibangun ulang tiap jam. Untuk perbandingan antar
+            -- wilayah itu tidak berarti; halaman satu sekolah tetap membaca
+            -- data mentah.
             hadir AS (
                 SELECT school_id,
-                       COUNT(*) FILTER (WHERE status IN ('hadir','terlambat','dispensasi')) AS present
-                  FROM attendances WHERE attendance_date = ?
+                       SUM(hadir + terlambat + dispensasi) AS present
+                  FROM attendance_daily_summary WHERE summary_date = ?
                  GROUP BY school_id
             )
             SELECT sk.wilayah_id, sk.wilayah,
