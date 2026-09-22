@@ -81,7 +81,13 @@ def main(sumber: str) -> int:
                 continue
 
             nama = str(nama).strip()
-            kab = str(kab).strip() if kab else None
+            # Judul-kan agar "KOTA GUNUNGSITOLI" dan "Kota Gunungsitoli"
+            # tidak menjadi dua wilayah berbeda.
+            kab = str(kab).strip().title() if kab else None
+            if kab:
+                # "Kabupaten"/"Kota" tetap kapital di awal setelah .title(),
+                # tetapi nama seperti "Labuhanbatu Selatan" ikut benar.
+                kab = kab.replace("Dki ", "DKI ")
             if kab and kab not in kabupaten:
                 kabupaten[kab] = sheet
                 # Berurut, BUKAN potongan slug: `regions.code` hanya 10

@@ -138,7 +138,38 @@ Memantau seluruh wilayah, dan satu-satunya yang boleh menyatakan laporan siswa
 Setiap akun hanya melihat sekolah di wilayahnya. Coba masuk sebagai `capdis01`
 lalu `capdis07` — daftar sekolahnya akan berbeda.
 
-> **Ketiganya wajib ganti sandi saat login pertama.** Itu bukan gangguan,
+### Sekolah — 2.085 akun
+
+| | |
+|---|---|
+| Pengguna | **NPSN sekolah** |
+| Sandi | `Sekolah#2026` |
+
+Satu akun untuk setiap sekolah di Sumatera Utara, dan nama penggunanya adalah
+NPSN sekolah itu sendiri — tidak ada daftar terpisah yang perlu dibagikan.
+Akun ini memantau muridnya: absensi, laporan, dan rekap kehadiran.
+
+### Admin Sekolah — 2.085 akun
+
+| | |
+|---|---|
+| Pengguna | `admin.` + NPSN, misalnya `admin.10259001` |
+| Sandi | `Admin#2026` |
+
+Mengelola data sekolahnya: siswa, kelas, guru, dan pendaftaran wajah.
+
+Mencari NPSN sebuah sekolah:
+
+```bash
+docker compose exec -T postgres psql -U absensi -d absensi \
+  -c "SELECT npsn, name FROM schools WHERE name ILIKE '%medan%' LIMIT 10"
+```
+
+Keduanya terikat pada `users.school_id`, sehingga seluruh halaman dashboard
+tersaring otomatis ke sekolah itu — tidak ada cara untuk melihat sekolah lain,
+bahkan dengan mengubah alamat di peramban.
+
+> **Semuanya wajib ganti sandi saat login pertama.** Itu bukan gangguan,
 > melainkan pengaman: sandi di atas tertulis di repositori ini dan harus
 > berhenti berlaku begitu sistem dipakai sungguhan.
 
@@ -146,7 +177,7 @@ lalu `capdis07` — daftar sekolahnya akan berbeda.
 
 ## 3. Mengisi data contoh
 
-Setelah migrasi, basis data berisi **2.084 sekolah asli** se-Sumatera Utara,
+Setelah migrasi, basis data berisi **2.085 sekolah** se-Sumatera Utara,
 tetapi belum ada siswa maupun absensi — jadi dashboard masih kosong.
 
 Untuk mengisinya:
@@ -161,7 +192,7 @@ dua minggu terakhir, akun siswa, dan laporan pengaduan di berbagai tahap.
 
 | | |
 |---|---|
-| Akun siswa | `siswa9000000001`, `siswa9000000002`, … |
+| Akun siswa | `siswa` + NISN, misalnya `siswa9000000043` |
 | Sandi | `Siswa#2026` |
 
 Nomor lengkapnya bisa dilihat dengan:
@@ -350,3 +381,5 @@ berikutnya.
 | 0017–0019 | Peran Cabang Dinas, eskalasi laporan, nomor tiket |
 | 0020 | 2.084 sekolah se-Sumut + akun Capdis & Disdik |
 | 0021 | Notifikasi dalam aplikasi |
+| 0022 | Penggabungan kabupaten/kota yang terduplikasi oleh 0020 |
+| 0023 | Akun Sekolah & Admin untuk tiap sekolah |

@@ -189,11 +189,13 @@ UPDATE attendances a
 --
 -- Sandi seragam `Siswa#2026`, wajib diganti saat login pertama.
 -- ------------------------------------------------------------------
-INSERT INTO users (name, username, password, student_id, school_id,
+INSERT INTO users (name, username, email, password, student_id, school_id,
                    identity_number, identity_type,
                    is_active, must_change_password, created_at, updated_at)
 SELECT s.full_name,
        'siswa' || s.nisn,
+       -- `email` NOT NULL dan UNIQUE di tabel users; diisi berpola dari NISN.
+       s.nisn || '@siswa.disdik.sumutprov.go.id',
        '$2y$12$UFSN7N07W03urA.ctA.e1.HifjMEfVGj1rfNdbKQd5fyLyslVGJNy',
        s.id,
        s.school_id,
