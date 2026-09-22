@@ -1,132 +1,352 @@
-# jargon-be — Backend Jargon GO
+# Jargon GO — Backend
 
-Backend Super Apps **Dinas Pendidikan Provinsi Sumatera Utara** (700.000+
-siswa, ribuan sekolah): absensi pengenalan wajah, Panic Button (pengaduan
-anonim), dan pemberkasan kepegawaian.
+Sistem absensi wajah, pengaduan siswa, dan pemberkasan untuk Dinas Pendidikan
+Provinsi Sumatera Utara.
+
+Repositori ini berisi **dua aplikasi** yang berbagi satu basis data:
+
+| | Untuk apa | Alamat |
+|---|---|---|
+| `api/` — Rust (Axum) | API yang dipakai aplikasi mobile & tablet kios | `/v1/*`, dokumentasi di `/docs` |
+| `admin/` — Laravel | Dashboard web untuk petugas | `/admin` |
+
+Aplikasi mobilenya ada di repositori terpisah: [`jargon-fe`](https://github.com/rendyirawann/jargon-fe).
+
+> **Kenapa dua bahasa?** Jalur absensi menerima ribuan permintaan terkonsentrasi
+> di 45 menit setiap pagi dan mencocokkan vektor wajah — di situ Rust memberi
+> keunggulan nyata. Dashboard hanya dipakai puluhan petugas sepanjang hari, dan
+> yang menentukan di sana adalah kecepatan membangun layar CRUD, yang sudah
+> tersedia di Laravel. Penjelasan lengkapnya di
+> [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) bagian 2.
+
+---
+
+## 1. Menjalankan untuk pertama kali
+
+### Yang perlu terpasang
+
+Hanya **Docker Desktop**. Rust, PHP, dan PostgreSQL tidak perlu dipasang di
+komputer Anda — semuanya berjalan di dalam container.
+
+- Windows/macOS: [Docker Desktop](https://www.docker.com/products/docker-desktop/)
+- Linux: `docker` + `docker compose`
+
+Pastikan Docker sudah berjalan sebelum lanjut:
+
+```bash
+docker info
+```
+
+Kalau perintah itu gagal, Docker belum hidup. Buka Docker Desktop dulu.
+
+### Langkah
+
+```bash
+# 1. Ambil kode
+git clone https://github.com/rendyirawann/jargon-be.git
+cd jargon-be
+
+# 2. Siapkan konfigurasi
+cp .env.example .env
+```
+
+Buka `.env` dan isi dua nilai rahasia:
+
+```ini
+JWT_SECRET=<hasil perintah di bawah>
+SECRETS_KEY_HEX=<hasil perintah di bawah>
+```
+
+```bash
+# Linux/macOS/Git Bash
+openssl rand -base64 48      # untuk JWT_SECRET
+openssl rand -hex 32         # untuk SECRETS_KEY_HEX
+```
+
+Tanpa keduanya API menolak menyala — itu disengaja, supaya tidak ada
+pemasangan yang berjalan dengan kunci bawaan.
+
+```bash
+# 3. Nyalakan semuanya
+docker compose up -d --build
+```
+
+Pertama kali akan lama (5–15 menit) karena Rust dikompilasi dan image Laravel
+dibangun. Berikutnya jauh lebih cepat.
+
+```bash
+# 4. Buat tabel dan isi data awal
+docker compose run --rm --entrypoint /usr/local/bin/jargon-api api migrate
+```
+
+Migrasi juga berjalan otomatis saat API start. Menjalankannya terpisah dipakai
+supaya kegagalan migrasi terlihat sebagai kegagalan migrasi, bukan sebagai
+"API tidak mau menyala".
+
+### Memastikan berhasil
+
+```bash
+docker compose ps
+```
+
+Enam layanan harus `healthy`: `postgres`, `redis`, `api`, `admin`, `web`, `nginx`.
+
+Lalu buka:
+
+| Alamat | Isi |
+|---|---|
+| http://localhost/docs | **Swagger UI** — dokumentasi & uji coba API |
+| http://localhost/admin/login | **Dashboard Laravel** |
+| http://localhost | Aplikasi Jargon GO versi web |
+
+> Kalau port 80 sudah dipakai (XAMPP, IIS, Skype), setel `HTTP_PORT=8090` di
+> `.env` lalu `docker compose up -d`. Semua alamat di atas menjadi
+> `http://localhost:8090/...`.
+
+---
+
+## 2. Akun untuk masuk
+
+Migrasi membuat akun-akun ini secara otomatis.
+
+### Superadmin
+
+| | |
+|---|---|
+| Pengguna | `superadmin` |
+| Sandi | `Superadmin#2026` |
+
+Melihat dan mengelola seluruh provinsi.
+
+### Dinas Pendidikan Provinsi
+
+| | |
+|---|---|
+| Pengguna | `disdik` |
+| Sandi | `Disdik#2026` |
+
+Memantau seluruh wilayah, dan satu-satunya yang boleh menyatakan laporan siswa
+**Selesai**.
+
+### Cabang Dinas — 14 wilayah
+
+| | |
+|---|---|
+| Pengguna | `capdis01` sampai `capdis14` |
+| Sandi | `Capdis#2026` |
+
+Setiap akun hanya melihat sekolah di wilayahnya. Coba masuk sebagai `capdis01`
+lalu `capdis07` — daftar sekolahnya akan berbeda.
+
+> **Ketiganya wajib ganti sandi saat login pertama.** Itu bukan gangguan,
+> melainkan pengaman: sandi di atas tertulis di repositori ini dan harus
+> berhenti berlaku begitu sistem dipakai sungguhan.
+
+---
+
+## 3. Mengisi data contoh
+
+Setelah migrasi, basis data berisi **2.084 sekolah asli** se-Sumatera Utara,
+tetapi belum ada siswa maupun absensi — jadi dashboard masih kosong.
+
+Untuk mengisinya:
+
+```bash
+docker compose exec -T postgres psql -U absensi -d absensi \
+  < api/seeds/dummy_dashboard.sql
+```
+
+Yang dibuat: 3 sekolah per wilayah, masing-masing 4 kelas × 28 siswa, absensi
+dua minggu terakhir, akun siswa, dan laporan pengaduan di berbagai tahap.
+
+| | |
+|---|---|
+| Akun siswa | `siswa9000000001`, `siswa9000000002`, … |
+| Sandi | `Siswa#2026` |
+
+Nomor lengkapnya bisa dilihat dengan:
+
+```bash
+docker compose exec -T postgres psql -U absensi -d absensi \
+  -c "SELECT username, name FROM users WHERE username LIKE 'siswa9%' LIMIT 10"
+```
+
+**Data contoh ini bukan migrasi, dan itu disengaja** — siswa palsu tidak boleh
+pernah masuk ke basis data produksi tanpa ada yang memutuskannya.
+
+Menghapusnya kembali:
+
+```bash
+docker compose exec -T postgres psql -U absensi -d absensi -c "
+  DELETE FROM users WHERE username LIKE 'siswa9%';
+  DELETE FROM students WHERE metadata->>'dummy' = 'true';"
+```
+
+Sekolah dan wilayah tidak ikut terhapus — itu data master.
+
+---
+
+## 4. Mencoba API lewat Swagger
+
+Buka http://localhost/docs
+
+API ini memakai **JWT**, jadi sebagian besar endpoint menolak permintaan tanpa
+token. Urutannya:
+
+**1. Ambil token.** Cari `POST /v1/auth/login`, klik **Try it out**, isi:
+
+```json
+{
+  "identifier": "superadmin",
+  "password": "Superadmin#2026",
+  "device_name": "Swagger"
+}
+```
+
+Klik **Execute**, lalu salin nilai `access_token` dari respons.
+
+**2. Pasang token.** Klik tombol **Authorize** di kanan atas, tempel tokennya,
+klik **Authorize** lalu **Close**.
+
+**3. Coba endpoint mana pun.** Misalnya `GET /v1/me/home` — inilah yang dipanggil
+aplikasi mobile saat beranda dibuka.
+
+> Token berlaku **1 jam**. Kalau tiba-tiba semua endpoint menjawab 401, ambil
+> token baru dengan cara yang sama.
+
+### Endpoint yang paling menjelaskan sistem ini
+
+| Endpoint | Apa yang terjadi |
+|---|---|
+| `POST /v1/auth/login` | Masuk, menghasilkan access token + refresh token |
+| `GET /v1/me/home` | Ringkasan beranda: absensi anak, menu yang boleh dibuka |
+| `GET /v1/me/notifications` | Kotak masuk notifikasi dalam aplikasi |
+| `POST /v1/devices/pair` | Tablet menukar kode 8 angka dengan token perangkat |
+| `POST /v1/kiosk/recognize` | **Jalur absensi wajah** — menerima 128 angka, memutuskan hadir/terlambat |
+| `GET /v1/panic/reports` | Beranda pengaduan (anonim) |
+
+---
+
+## 5. Mencoba dashboard Laravel
+
+Buka http://localhost/admin/login dan masuk sebagai `superadmin`.
+
+Halaman yang paling banyak menjelaskan:
+
+| Menu | Isi |
+|---|---|
+| **Beranda** | Ringkasan kehadiran. Tampilannya **berbeda** untuk superadmin, Disdik, Capdis, dan Sekolah |
+| **Biometrik → Pendaftaran** | Daftarkan wajah siswa lewat webcam, tiga pose |
+| **Biometrik → Absensi** | Halaman kios: browser jadi perangkat absensi |
+| **Absensi** | Daftar kehadiran, koreksi manual |
+| **Pengaduan** | Laporan siswa beserta tingkat eskalasinya |
+| **Perangkat** | Kode pemasangan untuk tablet dan halaman kios |
+
+### Mencoba absensi wajah dari browser
+
+1. Buka **Perangkat**, buat perangkat baru, catat **kode pemasangan 8 angka**
+2. Buka **Biometrik → Pendaftaran**, pilih seorang siswa, daftarkan wajah
+   (tiga pose: hadap depan, menoleh kanan, menoleh kiri)
+3. Buka **Biometrik → Absensi**, masukkan kode pemasangan tadi
+4. Hadapkan wajah yang tadi didaftarkan ke kamera
+
+Kamera hanya bisa diakses lewat **`localhost` atau HTTPS** — itu aturan browser,
+bukan batasan aplikasi ini. Membukanya lewat IP LAN tanpa HTTPS akan gagal
+meminta izin kamera.
+
+---
+
+## 6. Perintah yang sering dipakai
+
+```bash
+# Melihat log
+docker compose logs -f api
+docker compose logs -f admin
+
+# Masuk ke basis data
+docker compose exec postgres psql -U absensi -d absensi
+
+# Membangun ulang setelah mengubah kode Rust
+docker compose up -d --build api
+
+# Menghentikan semuanya (data tetap aman)
+docker compose down
+
+# Menghapus semuanya TERMASUK basis data
+docker compose down -v
+```
+
+---
+
+## 7. Kalau bermasalah
+
+**`docker info` gagal**
+Docker Desktop belum berjalan. Buka aplikasinya, tunggu sampai ikonnya hijau.
+
+**Port sudah dipakai**
+Setel `HTTP_PORT=8090` di `.env`, lalu `docker compose up -d`.
+
+**API tidak menyala, log menyebut `JWT_SECRET`**
+Kedua nilai rahasia di `.env` belum diisi. Lihat langkah 2 di bagian 1.
+
+**Semua endpoint API menjawab 401**
+Token kedaluwarsa (berlaku 1 jam). Ambil token baru lewat `/v1/auth/login`.
+
+**Dashboard menampilkan angka nol semua**
+Data contoh belum dijalankan. Lihat bagian 3.
+
+**502 Bad Gateway setelah membangun ulang**
+nginx masih memakai alamat container yang lama:
+```bash
+docker compose restart nginx
+```
+
+**Kamera tidak bisa diakses di halaman kios**
+Buka lewat `http://localhost`, bukan alamat IP. Browser hanya mengizinkan
+kamera pada `localhost` atau HTTPS.
+
+---
+
+## 8. Dokumentasi lain
+
+| Berkas | Isi |
+|---|---|
+| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Alasan di balik rancangannya |
+| [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) | Pemasangan di server dari nol |
+| [`docs/UPGRADE.md`](docs/UPGRADE.md) | Memperbarui server yang sudah berjalan |
+
+---
+
+## 9. Struktur repositori
 
 ```
 jargon-be/
-├── api/      API Rust (Axum) + OpenAPI/Swagger + worker latar
-├── admin/    Dashboard /admin (Laravel 12 + Octane + Redis)
-├── infra/    docker-compose, nginx, init PostgreSQL
-└── docs/     ARCHITECTURE.md, DEPLOYMENT.md, UPGRADE.md
+├── api/                 API Rust (Axum)
+│   ├── migrations/      Skema basis data, dijalankan berurutan
+│   ├── seeds/           Data contoh, dijalankan manual
+│   └── src/
+│       ├── routes/      Endpoint HTTP
+│       ├── services/    Aturan domain (absensi, pengenalan wajah)
+│       ├── workers/     Tugas latar (partisi, rekap, notifikasi)
+│       └── face/        Index wajah di memori
+├── admin/               Dashboard Laravel
+├── infra/nginx/         Reverse proxy penyatu
+├── tools/               Skrip bantu (pembangkit seed sekolah)
+└── docs/
 ```
 
-## Mulai cepat
+### Tentang migrasi
 
-```bash
-export JWT_SECRET=$(openssl rand -base64 48)
-export SECRETS_KEY_HEX=$(openssl rand -hex 32)
-docker compose -f infra/docker-compose.yml up -d
-```
+Berkas di `api/migrations/` dijalankan **berurutan** dan hanya sekali. Jangan
+mengubah berkas yang sudah pernah dijalankan — buat berkas baru dengan nomor
+berikutnya.
 
-| | Alamat |
+| Nomor | Isi |
 |---|---|
-| Dashboard | <http://localhost/admin/login> |
-| Swagger UI | <http://localhost/docs> |
-| Spesifikasi OpenAPI | <http://localhost/api-docs/openapi.json> |
-
-Login pertama: `superadmin` / `Superadmin#2026` — **ganti segera**.
-
-Pemasangan manual, onboarding sekolah, dan penyetelan produksi:
-[`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md).
-
-Menaikkan versi server yang **sudah berjalan** — bukan memasang dari nol:
-[`docs/UPGRADE.md`](docs/UPGRADE.md). Dipisah karena pembaruan punya
-bahaya yang tidak ada pada pemasangan baru: ada data yang bisa hilang.
-
-## Dua service, satu database
-
-| | `api/` (Rust) | `admin/` (Laravel Octane) |
-|---|---|---|
-| Melayani | tablet kios, aplikasi mobile, dashboard | pengguna dashboard |
-| Beban | ~520 req/detik pada 06:30–07:15 | puluhan pengguna, sepanjang hari |
-| Tanggung jawab | pencocokan wajah, aturan absensi, outbox notifikasi | CRUD, laporan, RBAC, jejak audit |
-
-Dashboard **membaca** PostgreSQL langsung, tetapi **menulis** melalui API untuk
-semua hal yang punya aturan domain. Dengan begitu perhitungan keterlambatan,
-pemilihan template notifikasi, dan invalidasi cache wajah hanya ada di satu
-tempat — angka pada laporan tidak akan berbeda hanya karena absensi berasal
-dari tablet alih-alih dari koreksi manual guru.
-
-Alasan lengkap pemilihan ini (termasuk mengapa `/admin` **tidak** ditulis ulang
-dalam Rust): [`docs/ARCHITECTURE.md` §2](docs/ARCHITECTURE.md).
-
-## Skema database
-
-**Migrasi sqlx di `api/migrations/` adalah satu-satunya sumber kebenaran
-skema.** Migrasi Laravel sudah ditandai selesai oleh `0010_seed.sql`, sehingga
-`php artisan migrate` menjadi no-op yang aman — jangan menjalankannya sebagai
-bagian dari alur pemasangan.
-
-```
-0001_extensions              pgvector, pgcrypto, pg_trgm, UUID v7
-0002_identity_and_laravel_compat  users + tabel infrastruktur Laravel
-0003_tenancy                 regions, schools, academic_years, cakupan user
-0004_academics               classrooms, students, student_guardians
-0005_face                    face_enrollments, face_embeddings (vector 512)
-0006_devices                 devices, heartbeats, api_clients
-0007_attendance              aturan jam, attendances & events (partisi bulanan)
-0008_notifications           templates, policies, outbox (partisi bulanan)
-0009_ops                     audit, import, export, idempotency
-0010_seed                    roles, permissions, superadmin, 34 wilayah Sumut
-0011_superapp_identity       login NIK/NISN, akun siswa & orang tua, izin baru
-0012_panic_button            kategori, laporan (partisi), media, unmask logs
-0013_pemberkasan             jenis dokumen, pengajuan, berkas, lini masa
-```
-
-Tiga migrasi terakhir menambahkan Jargon GO di atas skema absensi yang sudah
-ada. Yang perlu diperhatikan pada `0012`: kolom `panic_reports.author_user_id`
-adalah **rahasia** — VIEW `panic_reports_feed` sengaja tidak memuatnya, dan
-satu-satunya jalan resmi membukanya menulis `panic_unmask_logs` lebih dulu.
-
-## Perintah yang sering dipakai
-
-```bash
-# API
-cd api
-cargo run                     # migrasi jalan otomatis saat start
-cargo test                    # 204 pengujian unit
-cargo clippy --all-targets
-
-# Dashboard
-cd admin
-php artisan octane:start --host=0.0.0.0 --port=8000
-php artisan view:clear && php artisan config:clear
-```
-
-## Privasi data biometrik
-
-| | Gambar wajah | Vektor embedding |
-|---|---|---|
-| Pendaftaran awal | disimpan | disimpan |
-| Absensi harian | **tidak dikirim** | dikirim, dipakai, **dibuang** |
-| Log scan | — | hanya SHA-256-nya (anti-replay) |
-
-Tabel `attendances` dan `attendance_events` tidak memiliki kolom untuk gambar
-maupun vektor. Menghapus siswa memusnahkan seluruh data biometriknya secara
-permanen; riwayat absensi tetap disimpan sebagai dokumen administrasi.
-
-## Anonimitas Panic Button
-
-Identitas pelapor tidak pernah muncul di halaman mana pun. Tiga hal yang
-sebaiknya tidak diubah tanpa membaca
-[`docs/ARCHITECTURE.md` §11](docs/ARCHITECTURE.md) lebih dulu:
-
-1. `PanicReport` tidak punya relasi `author()`. Bukan kelupaan — begitu relasi
-   itu ada, cepat atau lambat ada Blade yang menampilkannya.
-2. Kategori `kekerasan`, `pelecehan`, dan `pungli` tidak terlihat kepala
-   sekolah; pada laporan semacam itu ia bisa jadi pihak yang diadukan.
-3. Pembukaan identitas hanya lewat API, karena API menulis
-   `panic_unmask_logs` sebelum mengembalikan datanya. Membaca kolomnya langsung
-   dari dashboard akan melewati pencatatan itu.
-
-## Akun aplikasi
-
-Pendaftaran akun Jargon GO dilakukan admin di `/admin/app-accounts` — bukan
-swalayan. Siswa login memakai **NISN** (10 digit), peran lain memakai **NIK**
-(16 digit). Untuk sekolah besar tersedia pembuatan akun siswa massal per kelas;
-kata sandi awalnya ditampilkan **sekali** dan harus dicetak atau diunduh saat
-itu juga.
-
-Aplikasi Jargon GO & tablet kios: [`../jargon-fe`](../jargon-fe).
+| 0001–0009 | Skema dasar: identitas, sekolah, akademik, wajah, absensi |
+| 0010 | Peran, izin, akun superadmin |
+| 0011–0013 | Akun siswa/orang tua, Panic Button, pemberkasan |
+| 0014–0016 | Pengenalan wajah di browser, penajaman index |
+| 0017–0019 | Peran Cabang Dinas, eskalasi laporan, nomor tiket |
+| 0020 | 2.084 sekolah se-Sumut + akun Capdis & Disdik |
+| 0021 | Notifikasi dalam aplikasi |

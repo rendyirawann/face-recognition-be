@@ -194,7 +194,7 @@ INSERT INTO users (name, username, password, student_id, school_id,
                    is_active, must_change_password, created_at, updated_at)
 SELECT s.full_name,
        'siswa' || s.nisn,
-       '$2y$12$u/YK3TjLn.OoFRb2K/0QreT4ArTOPhZwJTlczLyt5aIUuE5H5oeNa',
+       '$2y$12$UFSN7N07W03urA.ctA.e1.HifjMEfVGj1rfNdbKQd5fyLyslVGJNy',
        s.id,
        s.school_id,
        s.nisn,
