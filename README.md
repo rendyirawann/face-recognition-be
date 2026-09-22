@@ -25,8 +25,8 @@ Aplikasi mobilenya ada di repositori terpisah: [`jargon-fe`](https://github.com/
 
 ### Yang perlu terpasang
 
-Hanya **Docker Desktop**. Rust, PHP, dan PostgreSQL tidak perlu dipasang di
-komputer Anda — semuanya berjalan di dalam container.
+Hanya **Docker Desktop** dan **Git**. Rust, PHP, PostgreSQL, dan Flutter
+tidak perlu dipasang di komputer Anda — semuanya berjalan di dalam container.
 
 - Windows/macOS: [Docker Desktop](https://www.docker.com/products/docker-desktop/)
 - Linux: `docker` + `docker compose`
@@ -41,47 +41,50 @@ Kalau perintah itu gagal, Docker belum hidup. Buka Docker Desktop dulu.
 
 ### Langkah
 
+**1. Ambil kedua repositori, berdampingan dalam satu folder induk.**
+
 ```bash
-# 1. Ambil kode
 git clone https://github.com/rendyirawann/jargon-be.git
+git clone https://github.com/rendyirawann/jargon-fe.git
+```
+
+Aplikasi versi web dibangun dari `jargon-fe`, jadi tanpa repositori itu build
+berhenti di tengah jalan. Galat bawaan Docker untuk konteks yang hilang tidak
+menyebut sama sekali bahwa yang kurang adalah sebuah repositori — karena itu
+`setup.bat` memeriksanya lebih dulu dan mengatakannya dengan jelas.
+
+**2. Jalankan penyiapan. Sekali saja, seumur pemasangan.**
+
+```bat
 cd jargon-be
-
-# 2. Siapkan konfigurasi
-cp .env.example .env
+setup.bat
 ```
 
-Buka `.env` dan isi dua nilai rahasia:
-
-```ini
-JWT_SECRET=<hasil perintah di bawah>
-SECRETS_KEY_HEX=<hasil perintah di bawah>
-```
+Di Linux atau macOS:
 
 ```bash
-# Linux/macOS/Git Bash
-openssl rand -base64 48      # untuk JWT_SECRET
-openssl rand -hex 32         # untuk SECRETS_KEY_HEX
+cd jargon-be
+./setup.sh
 ```
 
-Tanpa keduanya API menolak menyala — itu disengaja, supaya tidak ada
-pemasangan yang berjalan dengan kunci bawaan.
+Skrip ini melakukan tiga hal: membuat `.env` berisi `JWT_SECRET` dan
+`SECRETS_KEY_HEX` yang diacak secara kriptografis, membangun seluruh image,
+lalu menjalankannya. Kedua kunci itu tidak punya nilai bawaan dan API menolak
+menyala tanpanya — disengaja, supaya tidak ada pemasangan yang hidup dengan
+kunci yang bisa ditebak.
+
+**Build pertama memakan 10–20 menit**, karena Rust dan Flutter dikompilasi
+dari nol. Build berikutnya jauh lebih cepat karena layer dependensinya
+di-cache.
+
+Migrasi dijalankan sendiri saat API menyala, jadi tabelnya sudah ada begitu
+skrip selesai.
+
+**3. Sesudah hari pertama**, cukup:
 
 ```bash
-# 3. Nyalakan semuanya
-docker compose up -d --build
+docker compose up -d
 ```
-
-Pertama kali akan lama (5–15 menit) karena Rust dikompilasi dan image Laravel
-dibangun. Berikutnya jauh lebih cepat.
-
-```bash
-# 4. Buat tabel dan isi data awal
-docker compose run --rm --entrypoint /usr/local/bin/jargon-api api migrate
-```
-
-Migrasi juga berjalan otomatis saat API start. Menjalankannya terpisah dipakai
-supaya kegagalan migrasi terlihat sebagai kegagalan migrasi, bukan sebagai
-"API tidak mau menyala".
 
 ### Memastikan berhasil
 

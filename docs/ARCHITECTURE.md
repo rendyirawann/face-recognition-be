@@ -563,7 +563,6 @@ jargon-be/
 
 jargon-fe/                     Flutter — tablet kios + aplikasi Jargon GO
 ├── web/                       scaffolding debug di browser
-├── run-web.bat                jalankan debug web di :5000
 └── lib/
     ├── core/
     │   ├── theme/             claymorphism: palet, bayangan, widget dasar
@@ -585,23 +584,23 @@ jargon-fe/                     Flutter — tablet kios + aplikasi Jargon GO
 docker-compose.yml             seluruh sistem dalam container (yang dibagikan)
 .env.example                   nilai yang bisa disetel + alasannya
 setup.bat / setup.sh           penyiapan pertama kali (membuat rahasia acak)
-dev.bat                        buka semua service di tab Windows Terminal
-dev-manual.txt                 perintah tiap tab, bila dijalankan manual
 ```
 
-### 13.2 Dua cara menjalankan, dan mengapa keduanya ada
+### 13.2 Satu cara menjalankan, dan mengapa hanya satu
 
-| | `docker compose` (akar) | `dev.bat` |
-|---|---|---|
-| Untuk | membagikan, mendemokan, memasang | **mengubah kode** |
-| Dijalankan | semuanya di container | hanya PostgreSQL di container |
-| Alamat | satu port, `http://localhost/` | tiga port (:5000, :8080, :8000) |
-| Ubah kode | bangun ulang image | hot reload |
+Seluruh sistem dijalankan lewat `docker compose` — enam container:
+PostgreSQL, Redis, API Rust, dashboard Laravel, aplikasi Flutter versi web,
+dan nginx di depannya. `setup.bat` (atau `setup.sh`) melakukannya sekali;
+sesudah itu cukup `docker compose up -d`.
 
-Container tidak dipakai untuk pengembangan sehari-hari karena setiap
-perubahan berarti membangun ulang image — hot reload Flutter dan `cargo run`
-jauh lebih cepat. Sebaliknya `dev.bat` tidak bisa dibagikan: ia
-mengandalkan Rust, PHP, dan Flutter terpasang di mesin.
+Menjalankan komponennya secara native memang mungkin — `cargo run`,
+`php artisan serve`, `flutter run` — dan lebih nyaman saat mengubah kode
+karena ada hot reload. Tetapi itu **sengaja tidak didokumentasikan di sini**.
+Alasannya bukan bahwa cara itu buruk, melainkan bahwa dua jalur yang
+sama-sama terdokumentasi membuat orang memilih yang salah: jalur native
+menuntut Rust, PHP, Flutter, dan Windows Terminal terpasang lebih dulu, dan
+kegagalannya muncul sebagai tab yang mati diam-diam, bukan sebagai pesan
+yang menjelaskan apa yang kurang.
 
 **Satu pintu masuk di mode container.** nginx melayani aplikasi di `/`,
 dashboard di `/admin`, dan API di `/v1`, `/docs`, `/files`. Konsekuensi yang

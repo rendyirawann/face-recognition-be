@@ -39,3 +39,34 @@ Thumbs.db
 .env.bak*
 .env.backup*
 .env.save*
+
+# ----------------------------------------------------------------------
+# Perkakas pengembangan lokal (tidak diedarkan)
+#
+# Repositori ini mendokumentasikan SATU cara menjalankan sistem: Docker,
+# lewat setup.bat. Berkas di bawah ini menjalankan API, dashboard, dan
+# aplikasi secara native supaya ada hot reload saat mengoding, dan
+# membutuhkan Rust, PHP, serta Flutter terpasang di mesin.
+#
+# Dibiarkan ada di disk, tetapi tidak ikut ke repositori: dua jalur yang
+# sama-sama terdokumentasi hanya membuat orang memilih yang salah lalu
+# tersangkut pada perkakas yang tidak mereka punya.
+#
+# Yang TETAP ikut karena dipakai jalur Docker:
+#   setup.bat, setup.sh
+#   scripts/init-compose-env.ps1, scripts/wait-http.ps1
+#   scripts/seed-demo.bat
+# ----------------------------------------------------------------------
+/dev.bat
+/dev-manual.txt
+/infra/docker-compose.yml
+/scripts/check-db.ps1
+/scripts/init-env.ps1
+/scripts/new-secrets.ps1
+/scripts/open-urls.bat
+/scripts/run-admin.bat
+/scripts/run-api.bat
+/scripts/run-app.bat
+/scripts/run-db.bat
+/scripts/stop.ps1
+/scripts/wait-port.bat

@@ -162,10 +162,6 @@ docker compose -f docker-compose.prod.yml up -d
 Yang perlu dikirim ke server hanya `docker-compose.prod.yml`, `.env`, dan
 folder `infra/`.
 
-> `infra/docker-compose.yml` **bukan** untuk ini — isinya hanya PostgreSQL
-> dan Redis, dipakai `dev.bat` saat API/dashboard/aplikasi dijalankan
-> langsung di mesin dengan hot reload.
-
 ---
 
 ## 2.8 Deploy ke server TANPA Docker
@@ -839,10 +835,10 @@ CREATE EXTENSION IF NOT EXISTS vector;
 SQL
 ```
 
-Periksa kesiapannya:
+Periksa kesiapannya — perintah ini harus mencetak `vector`, bukan galat:
 
 ```bash
-powershell -File scripts/check-db.ps1      # Windows
+psql -U absensi -d absensi -c "SELECT extname FROM pg_extension WHERE extname = 'vector'"
 ```
 
 ---
