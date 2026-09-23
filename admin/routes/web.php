@@ -29,6 +29,7 @@ use App\Http\Controllers\Backend\Device\DeviceController;
 use App\Http\Controllers\Backend\Notification\NotificationController;
 
 // Import Controller JARGON GO (Super Apps)
+use App\Http\Controllers\Backend\Cbt\CbtController;
 use App\Http\Controllers\Backend\Panic\PanicController;
 use App\Http\Controllers\Backend\Document\DocumentController;
 use App\Http\Controllers\Backend\Account\AppAccountController;
@@ -221,6 +222,18 @@ Route::middleware(['auth', 'forbid-banned-user'])->group(function () {
     Route::post('/admin/notifications/policy', [NotificationController::class, 'updatePolicy'])->name('notifications.policy');
     Route::post('/admin/notifications/send', [NotificationController::class, 'send'])->name('notifications.send');
     Route::post('/admin/notifications/{outbox}/retry', [NotificationController::class, 'retry'])->name('notifications.retry');
+
+    // ====================================================
+    // JARGON GO — CBT/TKA
+    //
+    // Modulnya belum dibangun; halamannya masih penanda "sedang
+    // dikembangkan". Dipasangi `can:view_cbt` sejak sekarang supaya
+    // pembatasan aksesnya tidak menjadi hal yang mudah terlupa ketika
+    // isinya nanti ditambahkan.
+    // ====================================================
+    Route::middleware('can:view_cbt')->group(function () {
+        Route::get('/admin/cbt', [CbtController::class, 'index'])->name('cbt.index');
+    });
 
     // ====================================================
     // JARGON GO — Panic Button (pengaduan anonim)

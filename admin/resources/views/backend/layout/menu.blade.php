@@ -148,6 +148,18 @@
             </div>
         @endif
 
+        {{-- ---------------------------------------------------- CBT/TKA --}}
+        @if ($can('view_cbt'))
+            <div class="menu-item me-0 me-lg-1 {{ $is('admin/cbt*') ? 'here show menu-here-bg' : '' }}">
+                <a class="menu-link py-3" href="{{ route('cbt.index') }}">
+                    <span class="menu-icon">
+                        <i class="ki-duotone ki-note-2 fs-4"><span class="path1"></span><span class="path2"></span><span class="path3"></span><span class="path4"></span></i>
+                    </span>
+                    <span class="menu-title">CBT/TKA</span>
+                </a>
+            </div>
+        @endif
+
         {{-- ---------------------------------------------------- Layanan --}}
         @if ($can('manage_app_account') || $can('view_panic_feed') || $can('view_document_submission'))
             <div data-kt-menu-trigger="{default: 'click', lg: 'hover'}" data-kt-menu-placement="bottom-start"

@@ -386,3 +386,4 @@ berikutnya.
 | 0021 | Notifikasi dalam aplikasi |
 | 0022 | Penggabungan kabupaten/kota yang terduplikasi oleh 0020 |
 | 0023 | Akun Sekolah & Admin untuk tiap sekolah |
+| 0024 | Izin menu CBT/TKA |
