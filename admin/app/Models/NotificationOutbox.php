@@ -59,7 +59,9 @@ class NotificationOutbox extends Model
      */
     public function scopeRecent(Builder $query, int $days = 90): Builder
     {
-        return $query->where('created_at', '>', now()->subDays($days));
+        // Dikualifikasi karena daftar outbox men-JOIN `students`, yang juga
+        // punya `created_at`.
+        return $query->where('notification_outbox.created_at', '>', now()->subDays($days));
     }
 
     public function scopeFailed(Builder $query): Builder

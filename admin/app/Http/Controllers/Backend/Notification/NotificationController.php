@@ -70,7 +70,9 @@ class NotificationController extends Controller implements HasMiddleware
         // akan menyentuh seluruh partisi.
         $query = NotificationOutbox::query()
             ->recent(90)
-            ->when($schoolId, fn ($q) => $q->where('school_id', $schoolId))
+            // Dikualifikasi: query ini men-JOIN `students`, yang juga punya
+            // kolom `school_id`.
+            ->when($schoolId, fn ($q) => $q->where('notification_outbox.school_id', $schoolId))
             ->leftJoin('students', 'students.id', '=', 'notification_outbox.student_id')
             ->select([
                 'notification_outbox.created_at', 'notification_outbox.id',
