@@ -40,6 +40,11 @@ Thumbs.db
 .env.backup*
 .env.save*
 
+# Salah ketik `.env` yang pernah ikut ter-commit (`.enb`). Pola `.env` tidak
+# menangkapnya karena namanya memang bukan `.env`.
+.enb
+.env.*.local
+
 # ----------------------------------------------------------------------
 # Perkakas pengembangan lokal (tidak diedarkan)
 #

@@ -143,6 +143,33 @@ class AppAccountController extends Controller implements HasMiddleware
             ]);
         }
 
+        // Akun siswa wajib ditautkan ke satu data siswa dan mewarisi sekolah dari siswa tersebut
+        if ($data['role'] === 'siswa') {
+            if (empty($data['student_ids'])) {
+                return back()->withInput()->withErrors([
+                    'student_ids' => 'Akun siswa wajib ditautkan ke data siswanya.',
+                ]);
+            }
+            if (count($data['student_ids']) > 1) {
+                return back()->withInput()->withErrors([
+                    'student_ids' => 'Satu akun siswa hanya boleh ditautkan ke satu data siswa.',
+                ]);
+            }
+            $student = Student::withoutTenantScope()->find($data['student_ids'][0]);
+            if (! $student) {
+                return back()->withInput()->withErrors([
+                    'student_ids' => 'Data siswa yang dipilih tidak ditemukan.',
+                ]);
+            }
+            $data['school_id'] = $student->school_id;
+        }
+
+        if ($data['role'] === 'orang_tua' && empty($data['student_ids'])) {
+            return back()->withInput()->withErrors([
+                'student_ids' => 'Akun orang tua wajib ditautkan ke minimal satu anak.',
+            ]);
+        }
+
         Tenant::authorizeSchool($data['school_id'] ?? null);
 
         $payload = [
