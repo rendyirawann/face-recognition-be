@@ -104,8 +104,11 @@ Route::middleware(['auth', 'forbid-banned-user'])->group(function () {
     Route::get('/admin/my-account/{id}/avatar', [AccountController::class, 'editAvatar'])->name('avatar-edit');
     Route::post('/admin/my-account/{id}/update-avatar', [AccountController::class, 'updateAvatar'])->name('avatar-update');
 
-    Route::resource('/admin/my-profile', ProfileController::class);
-    Route::resource('/admin/my-security', SecurityController::class);
+    // Hanya aksi yang benar-benar ada di controller. Tanpa batasan ini,
+    // Route::resource mendaftarkan create/store/show/destroy yang metodenya
+    // tidak ada, dan URL-nya membalas 500 (bukan 404) bila diketik orang.
+    Route::resource('/admin/my-profile', ProfileController::class)->only(['index', 'edit', 'update'])->whereUuid('my_profile');
+    Route::resource('/admin/my-security', SecurityController::class)->only(['index', 'edit', 'update'])->whereUuid('my_security');
     Route::post('/admin/my-security', [SecurityController::class, 'store'])->name('change.password');
     Route::post('/admin/my-security/logout-other-devices', [SecurityController::class, 'logoutOtherDevices'])->name('security.logout-other-devices');
 
@@ -137,7 +140,9 @@ Route::middleware(['auth', 'forbid-banned-user'])->group(function () {
     // RESOURCES (User & Role Mgmt): view_resources — Superadmin only
     // ====================================================
     Route::middleware('can:view_resources')->group(function () {
-        Route::resource('/admin/users', UserController::class);
+        // Parameter dibatasi bentuknya supaya URL seperti /admin/users/create tidak
+        // jatuh ke aksi show dan meledak saat id dicocokkan ke kolom uuid.
+        Route::resource('/admin/users', UserController::class)->except(['create'])->whereUuid('user');
         Route::get('/admin/get-datauser', [UserController::class, 'getDataUsers'])->name('get-users');
         Route::post('/admin/users/mass-delete', [UserController::class, 'massDelete'])->name('users.mass-delete');
         Route::get('/admin/get-user-show-log/{id}', [UserController::class, 'getLoginSession'])->name('get-user-show-log');
@@ -145,7 +150,7 @@ Route::middleware(['auth', 'forbid-banned-user'])->group(function () {
         Route::post('/admin/users/{id}/ban', [UserController::class, 'ban'])->name('users.ban');
         Route::post('/admin/users/{id}/unban', [UserController::class, 'unban'])->name('users.unban');
 
-        Route::resource('/admin/roles', RoleController::class);
+        Route::resource('/admin/roles', RoleController::class)->except(['create'])->whereNumber('role');
         Route::get('/admin/get-datarole', [RoleController::class, 'getDataRoles'])->name('get-datarole');
         Route::post('/admin/roles/mass-delete', [RoleController::class, 'massDelete'])->name('roles.mass-delete');
     });
@@ -299,7 +304,7 @@ Route::middleware(['auth', 'forbid-banned-user'])->group(function () {
     // HELP (Log Activity): view_help — Superadmin, admin
     // ====================================================
     Route::middleware('can:view_help')->group(function () {
-        Route::resource('/admin/log-activity', LogActivityController::class);
+        Route::resource('/admin/log-activity', LogActivityController::class)->only(['index', 'show'])->whereNumber('log_activity');
         Route::get('/admin/get-datalogactivity', [LogActivityController::class, 'getDataLogActivity'])->name('get-datalogactivity');
     });
 });

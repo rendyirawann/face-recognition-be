@@ -87,7 +87,12 @@ class School extends Model
             return $query;
         }
 
-        return $query->whereIn('id', $allowed ?: ['00000000-0000-0000-0000-000000000000']);
+        // Kolom DIKUALIFIKASI: pemanggilnya sering menambah JOIN (mis. daftar
+        // sekolah yang ikut menarik nama wilayah dari `regions`), dan `regions`
+        // juga punya kolom `id`. Tanpa nama tabel, Postgres menolak dengan
+        // "column reference \"id\" is ambiguous" — dan itu hanya terjadi pada
+        // peran non-superadmin, karena superadmin keluar lebih dulu di atas.
+        return $query->whereIn('schools.id', $allowed ?: ['00000000-0000-0000-0000-000000000000']);
     }
 
     public function getLabelAttribute(): string
