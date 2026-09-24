@@ -403,10 +403,15 @@ class AbsensiApi
             }
         }
 
+        // Galat per-field IKUT dicatat. Tanpa ini, penolakan validasi hanya
+        // terbaca sebagai "Data yang dikirim tidak valid." di log, dan sebabnya
+        // — versi model, mutu foto, dimensi vektor — tidak bisa ditelusuri
+        // sama sekali setelah kejadiannya lewat.
         Log::warning("API menolak {$action}", [
             'status' => $response->status(),
             'code' => $payload['code'] ?? null,
             'message' => $message,
+            'errors' => $errors,
         ]);
 
         return [

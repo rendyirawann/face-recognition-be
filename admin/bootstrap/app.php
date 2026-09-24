@@ -25,6 +25,9 @@ return Application::configure(basePath: dirname(__DIR__))
             \Illuminate\Session\Middleware\AuthenticateSession::class,
             \App\Http\Middleware\CheckMaintenanceMode::class,
             \App\Http\Middleware\SetActiveCabangDinas::class,
+            // Jaring pengaman: sesi siswa/orang tua yang terlanjur terbentuk
+            // sebelum penjaga di atas dipasang ikut ditutup di sini.
+            \App\Http\Middleware\HanyaAplikasiSeluler::class,
         ]);
 
         // 🔥 TAMBAHKAN KODE INI UNTUK MENGECUALIKAN WEBHOOK MIDTRANS DARI CSRF

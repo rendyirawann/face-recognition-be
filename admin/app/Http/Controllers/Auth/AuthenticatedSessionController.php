@@ -38,6 +38,23 @@ class AuthenticatedSessionController extends Controller
         // 3. Ambil Data User
         $user = Auth::user();
 
+        // 4a. Peran yang hanya dilayani aplikasi HP ditolak di sini juga,
+        //     bukan hanya oleh middleware. Tanpa ini penggunanya sempat
+        //     "berhasil masuk" lalu dilempar keluar di halaman berikutnya —
+        //     terbaca seperti kerusakan, padahal memang tidak boleh.
+        if ($user->hasAnyRole(\App\Http\Middleware\HanyaAplikasiSeluler::PERAN_SELULER)) {
+            Auth::guard('web')->logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+
+            $pesan = 'Akun siswa dan orang tua hanya dapat masuk lewat aplikasi Jargon GO di ponsel.';
+
+            if ($request->expectsJson()) {
+                return response()->json(['status' => 'error', 'message' => $pesan], 403);
+            }
+            throw ValidationException::withMessages(['email' => $pesan]);
+        }
+
         // 4. Cek Status Banned (Double Check setelah login berhasil)
         if ($user->banned_at) {
             Auth::guard('web')->logout();
