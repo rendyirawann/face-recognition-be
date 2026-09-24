@@ -21,8 +21,16 @@
 -- (`kepsek9`, `guru9`, `tu9`, `ortu9`) sehingga dapat dihapus kembali
 -- tanpa menyentuh data asli. Lihat bagian akhir berkas.
 --
--- KATA SANDI seragam untuk seluruh akun di berkas ini: Pegawai#2026
--- (hash bcrypt cost 12, diverifikasi dengan password_verify sebelum ditulis)
+-- KATA SANDI (hash bcrypt cost 12, diverifikasi dengan password_verify
+-- sebelum ditulis — hash yang ditulis dari ingatan pada percobaan pertama
+-- TIDAK cocok, dan kegagalannya baru terlihat saat orang mencoba login):
+--
+--   Pegawai#2026   kepala sekolah, guru, staf TU
+--   Wali#2026      orang tua
+--   Siswa#2026     akun siswa
+--
+-- Dipisahkan karena ketiganya kelompok yang berbeda. Orang tua bukan
+-- pegawai sekolah, dan siswa bukan keduanya.
 -- =====================================================================
 
 BEGIN;
@@ -210,7 +218,10 @@ INSERT INTO users (name, username, email, password, school_id,
 SELECT g.full_name,
        'ortu9' || substring(st.nisn FROM 2),
        'ortu9' || substring(st.nisn FROM 2) || '@contoh.disdik.sumutprov.go.id',
-       '$2y$12$K1cEBcgdz7fC6ijnsKG4AuVOdCmHtOuf.o4F1TEgyqzU7gnjxU6jO',
+       -- Sandi orang tua BERBEDA dari pegawai: wali murid bukan pegawai
+       -- sekolah, dan menyamakan sandinya membuat satu kebocoran menyentuh
+       -- dua kelompok yang tidak ada hubungannya.
+       '$2y$12$ZEhX6XYlz.MstwRG1EYx9uLAhLafeJKb7iFSE3QMtK6sAgqk7ajZW',
        -- Akun orang tua TIDAK diberi school_id: cakupannya mengikuti
        -- sekolah anaknya lewat student_guardians, dan anak-anaknya bisa
        -- berada di sekolah berbeda.
@@ -251,7 +262,9 @@ INSERT INTO users (name, username, email, password, student_id, school_id,
 SELECT s.full_name,
        'siswa' || s.nisn,
        s.nisn || '@siswa.contoh.disdik.sumutprov.go.id',
-       '$2y$12$K1cEBcgdz7fC6ijnsKG4AuVOdCmHtOuf.o4F1TEgyqzU7gnjxU6jO',
+       -- Hash yang SAMA dengan dummy_dashboard.sql, supaya seluruh akun
+       -- siswa contoh berperilaku sama dari mana pun ia dibuat.
+       '$2y$12$UFSN7N07W03urA.ctA.e1.HifjMEfVGj1rfNdbKQd5fyLyslVGJNy',
        s.id, s.school_id,
        s.nisn, 'nisn',
        TRUE, TRUE, NOW(), NOW()
