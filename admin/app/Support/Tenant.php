@@ -199,18 +199,99 @@ class Tenant
      *
      * @return \Illuminate\Support\Collection<int, School>
      */
+    /**
+     * Cabang Dinas yang boleh dipilih pengguna aktif.
+     *
+     * Untuk peran tingkat provinsi: keempat belas wilayah. Untuk akun
+     * Cabang Dinas: hanya wilayahnya sendiri, sehingga pemilihnya tetap
+     * dirender tetapi tidak menawarkan apa pun yang di luar haknya.
+     * Untuk akun tingkat sekolah: kosong, dan pemilihnya tidak dirender.
+     */
+    public static function selectableCabangDinas()
+    {
+        $user = Auth::user();
+
+        $query = Region::query()
+            ->where('kind', 'cabang_dinas')
+            ->orderBy('name');
+
+        if (! self::isProvinceScope()) {
+            if (! $user || ! $user->region_id) {
+                return collect();
+            }
+            $query->where('regions.id', $user->region_id);
+        }
+
+        return $query->get(['id', 'name', 'code']);
+    }
+
+    /**
+     * Cabang Dinas yang sedang dipilih, atau null untuk seluruh provinsi.
+     *
+     * Disimpan di session seperti `active_school_id`, supaya pilihannya
+     * bertahan saat berpindah halaman — pemantau provinsi biasanya menelusuri
+     * satu wilayah lewat beberapa menu sekaligus, dan memilih ulang di setiap
+     * halaman membuatnya tidak terpakai.
+     */
+    public static function currentCabangDinasId(?string $requested = null): ?string
+    {
+        if (! self::isProvinceScope()) {
+            // Akun Cabang Dinas selalu terkunci ke wilayahnya sendiri.
+            return Auth::user()?->region_id;
+        }
+
+        if ($requested === null) {
+            return session('active_capdis_id');
+        }
+
+        if ($requested === '' || $requested === 'all') {
+            session()->forget('active_capdis_id');
+            session()->forget('active_school_id');
+
+            return null;
+        }
+
+        // Berganti wilayah membatalkan pilihan sekolah: sekolah yang aktif
+        // hampir pasti bukan milik wilayah baru, dan membiarkannya membuat
+        // halaman menampilkan wilayah A dengan data sekolah wilayah B.
+        if (session('active_capdis_id') !== $requested) {
+            session()->forget('active_school_id');
+        }
+
+        session(['active_capdis_id' => $requested]);
+
+        return $requested;
+    }
+
+    /**
+     * Sekolah yang boleh dipilih, dipersempit ke Cabang Dinas yang aktif.
+     *
+     * Tanpa penyempitan itu, pemilih sekolah seorang Superadmin memuat
+     * seluruh 2.085 sekolah dalam satu dropdown — daftar yang secara teknis
+     * benar tetapi tidak dapat dipakai siapa pun.
+     */
     public static function selectableSchools()
     {
         $query = School::query()
-            ->whereNull('deleted_at')
-            ->orderBy('name');
+            ->whereNull('schools.deleted_at')
+            ->orderBy('schools.name');
 
         $allowed = self::schoolIds();
         if ($allowed !== null) {
-            $query->whereIn('id', $allowed ?: ['00000000-0000-0000-0000-000000000000']);
+            $query->whereIn('schools.id', $allowed ?: ['00000000-0000-0000-0000-000000000000']);
         }
 
-        return $query->get(['id', 'name', 'npsn', 'jenjang']);
+        $capdis = self::currentCabangDinasId();
+        if ($capdis !== null) {
+            // Sekolah menunjuk kabupaten/kota, dan kabupaten/kota menunjuk
+            // Cabang Dinas — dua tingkat, jadi lewat subquery pada region
+            // induknya, bukan perbandingan langsung.
+            $query->whereIn('schools.region_id', function ($q) use ($capdis) {
+                $q->select('id')->from('regions')->where('parent_id', $capdis);
+            });
+        }
+
+        return $query->get(['schools.id', 'schools.name', 'schools.npsn', 'schools.jenjang']);
     }
 
     public static function forgetCache(?string $userId = null): void

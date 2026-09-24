@@ -28,6 +28,18 @@ class AppServiceProvider extends ServiceProvider
             return $user->hasRole(['Superadmin', 'superadmin']) ? true : null;
         });
 
+        // Daftar Cabang Dinas untuk pemilih dua tingkat.
+        //
+        // Disediakan lewat composer, bukan dari tiap controller: pemilihnya
+        // muncul di delapan halaman, dan menambahkannya satu per satu berarti
+        // halaman kesembilan pasti terlewat.
+        View::composer('backend.partials._school_picker', function ($view) {
+            $view->with([
+                'capdisList' => \App\Support\Tenant::selectableCabangDinas(),
+                'capdisId' => \App\Support\Tenant::currentCabangDinasId(),
+            ]);
+        });
+
         // Share settings globally to all views
         View::composer('*', function ($view) {
             try {
