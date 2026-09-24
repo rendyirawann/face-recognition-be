@@ -95,7 +95,11 @@ impl AppState {
             .map_err(|e| ApiError::Config(format!("gagal membuat HTTP client: {e}")))?;
 
         let jwt = JwtKeys::new(&cfg.jwt_secret, &cfg.jwt_issuer);
-        let face_index = Arc::new(FaceIndex::new(cfg.face.embedding_dim, cfg.face.index_ttl));
+        let face_index = Arc::new(FaceIndex::new(
+            cfg.face.embedding_dim,
+            cfg.face.index_ttl,
+            cfg.face.model_version.clone(),
+        ));
 
         Ok(Self {
             db,

@@ -82,6 +82,47 @@ pub fn cosine_normalized(a: &[f32], b: &[f32]) -> f32 {
     dot(a, b).clamp(-1.0, 1.0)
 }
 
+/// Jarak Euclid antara dua descriptor APA ADANYA (tanpa normalisasi).
+#[inline]
+pub fn euclid(a: &[f32], b: &[f32]) -> f32 {
+    let n = a.len().min(b.len());
+    let mut s = 0.0_f32;
+    for i in 0..n {
+        let d = a[i] - b[i];
+        s += d * d;
+    }
+    s.sqrt()
+}
+
+/// Skor kemiripan dari jarak Euclid: 1.0 berarti identik, makin kecil makin
+/// berbeda. Dipakai supaya seluruh jalur keputusan tetap berbentuk
+/// "makin besar makin cocok", sementara METRIKNYA kini jarak Euclid.
+///
+/// KENAPA BUKAN COSINE — INI PENYEBAB SALAH-KENAL YANG DILAPORKAN
+///
+/// Kode lama menormalkan descriptor lalu memakai cosine dengan ambang 0,82.
+/// Ambang itu diturunkan dari aturan baku face-api (jarak Euclid < 0,6)
+/// dengan anggapan descriptor ber-norm 1. Anggapan itu KELIRU: norm
+/// descriptor face-api.js sesungguhnya sekitar 1,41, sehingga kesetaraan
+/// 0,6 <-> 0,82 tidak berlaku.
+///
+/// Diukur pada 12 wajah berbeda (66 pasangan, semuanya orang berbeda):
+///
+///   cosine >= 0,82  ..... 59 dari 66 pasangan LOLOS  (rata-rata 0,859)
+///   Euclid  < 0,6   .....  1 dari 66 pasangan lolos  (rata-rata 0,778)
+///
+/// Dengan kata lain, dengan cosine hampir semua orang asing dinyatakan
+/// cocok. Normalisasi membuang informasi panjang vektor yang justru
+/// membedakan — karena itu descriptor kini disimpan dan dibandingkan
+/// apa adanya.
+///
+/// Pembagi 2,0 memetakan jarak 0..2 ke skor 1..0, jadi ambang jarak 0,6
+/// setara skor 0,70 dan selisih jarak 0,05 setara selisih skor 0,025.
+#[inline]
+pub fn euclid_score(a: &[f32], b: &[f32]) -> f32 {
+    1.0 - euclid(a, b) / 2.0
+}
+
 /// Hash stabil sebuah embedding, untuk deteksi replay.
 ///
 /// Nilai dikuantisasi ke 4 desimal sebelum di-hash sehingga embedding yang

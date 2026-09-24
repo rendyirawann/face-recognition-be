@@ -21,9 +21,19 @@ use crate::state::AppState;
 
 /// Kemiripan minimum terhadap sampel siswa yang sudah ada.
 /// Di bawah ini, foto kemungkinan bukan orang yang sama.
-const MIN_SELF_SIMILARITY: f32 = 0.45;
+// Ambang di bawah ini memakai SKALA BARU (vector::euclid_score), bukan
+// cosine. Padanannya: skor 0,70 = jarak Euclid 0,60 (ambang baku face-api),
+// skor 0,60 = jarak 0,80.
+//
+// Sampel baru harus cukup mirip dengan wajah siswa yang sudah terdaftar.
+// Dilonggarkan dari ambang absensi karena pose pendaftaran memang
+// berbeda-beda (hadap depan, menoleh kiri, menoleh kanan).
+const MIN_SELF_SIMILARITY: f32 = 0.60;
 /// Kemiripan terhadap siswa LAIN yang dianggap tabrakan identitas.
-const CROSS_STUDENT_CONFLICT: f32 = 0.80;
+// Lebih KETAT daripada ambang absensi: kalau wajah yang didaftarkan sudah
+// sedekat ini dengan siswa lain, absensi nanti pasti tertukar. Menolak di
+// sini jauh lebih murah daripada menyelidiki kehadiran palsu sebulan lagi.
+const CROSS_STUDENT_CONFLICT: f32 = 0.72;
 
 pub struct EnrollActor {
     pub user_id: Option<Uuid>,
@@ -56,7 +66,9 @@ pub async fn enroll(
     }
 
     vector::validate(&req.embedding, face_cfg.embedding_dim)?;
-    let embedding = vector::normalized(&req.embedding);
+    // Descriptor disimpan APA ADANYA. Normalisasi membuang panjang vektor,
+    // dan panjang itu ikut membedakan orang — lihat vector::euclid_score.
+    let embedding = req.embedding.clone();
 
     // --- Gambar --------------------------------------------------------
     let bytes = base64::engine::general_purpose::STANDARD
@@ -286,7 +298,7 @@ fn own_similarity(
         .iter()
         .enumerate()
         .filter(|(_, s)| s.student_id == student_id)
-        .map(|(i, _)| vector::cosine_normalized(query, &slice.data[i * dim..(i + 1) * dim]))
+        .map(|(i, _)| vector::euclid_score(query, &slice.data[i * dim..(i + 1) * dim]))
         .fold(f32::NEG_INFINITY, f32::max)
         .max(-1.0)
 }

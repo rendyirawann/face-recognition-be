@@ -172,9 +172,9 @@ impl Config {
 
             face: FaceConfig {
                 embedding_dim: env_parse("FACE_EMBEDDING_DIM", 128),
-                model_version: env_or("FACE_MODEL_VERSION", "faceapi-v1"),
-                match_threshold: env_parse("FACE_MATCH_THRESHOLD", 0.62_f32),
-                match_margin: env_parse("FACE_MATCH_MARGIN", 0.04_f32),
+                model_version: env_or("FACE_MODEL_VERSION", "faceapi-v2"),
+                match_threshold: env_parse("FACE_MATCH_THRESHOLD", 0.70_f32),
+                match_margin: env_parse("FACE_MATCH_MARGIN", 0.025_f32),
                 min_liveness: env_parse("FACE_MIN_LIVENESS", 0.5_f32),
                 min_enroll_quality: env_parse("FACE_MIN_ENROLL_QUALITY", 0.45_f32),
                 index_ttl: Duration::from_secs(env_parse("FACE_INDEX_TTL_SECS", 300)),

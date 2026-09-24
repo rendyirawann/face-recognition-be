@@ -89,7 +89,7 @@ impl SchoolSlice {
         let mut runner_up = Candidate::default();
 
         for (i, sample) in self.samples.iter().enumerate() {
-            let sim = vector::cosine_normalized(query, self.row(i));
+            let sim = vector::euclid_score(query, self.row(i));
 
             if sim > best.similarity {
                 if sample.student_id != best.student_id {
@@ -164,11 +164,13 @@ pub struct FaceIndex {
     slices: DashMap<Uuid, Arc<SchoolSlice>>,
     ttl: Duration,
     dim: usize,
+    /// Versi model yang berlaku. Hanya embedding versi ini yang dimuat.
+    model_version: String,
 }
 
 impl FaceIndex {
-    pub fn new(dim: usize, ttl: Duration) -> Self {
-        Self { slices: DashMap::new(), ttl, dim }
+    pub fn new(dim: usize, ttl: Duration, model_version: String) -> Self {
+        Self { slices: DashMap::new(), ttl, dim, model_version }
     }
 
     /// Ambil slice sekolah; muat dari database bila belum ada atau kedaluwarsa.
@@ -242,12 +244,20 @@ impl FaceIndex {
             JOIN students s ON s.id = fe.student_id
             WHERE fe.school_id = $1
               AND fe.is_active
+              AND fe.model_version = $2
               AND s.deleted_at IS NULL
               AND s.status = 'aktif'
             ORDER BY fe.school_id, fe.student_id, fe.created_at
             "#,
         )
         .bind(school_id)
+        // Versi model DISARING DI SQL, bukan sekadar dicatat. Sebelumnya
+        // embedding versi lama tetap dimuat dan dibandingkan — padahal
+        // embedding lintas versi tidak sebanding, dan hasilnya bukan "kurang
+        // akurat" melainkan ACAK. Untuk perpindahan v1 -> v2 khususnya, v1
+        // tersimpan dalam keadaan ternormalisasi sehingga jaraknya tidak
+        // mungkin benar.
+        .bind(&self.model_version)
         .fetch_all(pool)
         .await?;
 
@@ -267,11 +277,9 @@ impl FaceIndex {
             if model_version.is_empty() {
                 model_version = mv;
             }
-            // Normalisasi ulang saat memuat: murah, dan menjamin invarian
-            // walau ada data lama yang tersimpan tanpa normalisasi.
-            let mut buf = slice.to_vec();
-            vector::l2_normalize(&mut buf);
-            data.extend_from_slice(&buf);
+            // TIDAK dinormalisasi: panjang descriptor ikut membedakan orang.
+            // Lihat vector::euclid_score untuk angka pengukurannya.
+            data.extend_from_slice(slice);
             samples.push(Sample { student_id, embedding_id });
         }
 
