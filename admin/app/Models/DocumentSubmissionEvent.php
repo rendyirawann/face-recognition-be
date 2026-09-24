@@ -2,12 +2,15 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /** Satu langkah pada lini masa pengajuan berkas. */
 class DocumentSubmissionEvent extends Model
 {
+    use HasUuids;
+
     protected $table = 'document_submission_events';
 
     public $incrementing = false;

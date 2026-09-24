@@ -163,6 +163,45 @@
                     </div>
                 </div>
             </div>
+
+            {{-- Setel ulang kata sandi.
+
+                 Sandi lama tidak diminta: yang memakai ini adalah operator
+                 yang membantu siswa atau guru yang lupa sandinya. API
+                 menandai akunnya wajib ganti sandi saat login berikutnya,
+                 karena sandi ini sempat terbaca di layar orang lain. --}}
+            <div class="card card-flush border border-gray-200 mt-5">
+                <div class="card-header pt-5">
+                    <h3 class="card-title fw-bold fs-6">Setel Ulang Kata Sandi</h3>
+                </div>
+                <div class="card-body pt-3">
+                    <form method="POST" action="{{ route('app-accounts.reset-password', $account->id) }}">
+                        @csrf
+                        <div class="mb-3">
+                            <label class="form-label fs-8 text-muted" for="new_password">Kata sandi baru</label>
+                            <input type="password" name="new_password" id="new_password"
+                                   class="form-control form-control-sm @error('new_password') is-invalid @enderror"
+                                   minlength="8" required autocomplete="new-password">
+                            @error('new_password')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
+                        <div class="mb-4">
+                            <label class="form-label fs-8 text-muted" for="new_password_confirmation">Ulangi kata sandi</label>
+                            <input type="password" name="new_password_confirmation" id="new_password_confirmation"
+                                   class="form-control form-control-sm"
+                                   minlength="8" required autocomplete="new-password">
+                        </div>
+                        <button type="submit" class="btn btn-sm btn-light-warning w-100"
+                                onclick="return confirm('Setel ulang kata sandi {{ $account->name }}?')">
+                            Setel Ulang
+                        </button>
+                        <div class="text-muted fs-9 mt-3">
+                            Pemilik akun wajib menggantinya saat login berikutnya.
+                        </div>
+                    </form>
+                </div>
+            </div>
         </div>
     </div>
 @endsection

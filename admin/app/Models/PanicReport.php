@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -29,6 +30,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  */
 class PanicReport extends Model
 {
+    use HasUuids;
+
     protected $table = 'panic_reports';
 
     public $incrementing = false;

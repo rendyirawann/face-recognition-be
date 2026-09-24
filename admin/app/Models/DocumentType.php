@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 
 /** Jenis dokumen yang diminta untuk sebuah keperluan kepegawaian. */
 class DocumentType extends Model
 {
+    use HasUuids;
+
     protected $table = 'document_types';
 
     public $incrementing = false;

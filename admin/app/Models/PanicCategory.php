@@ -2,12 +2,15 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /** Kategori pengaduan Panic Button. */
 class PanicCategory extends Model
 {
+    use HasUuids;
+
     protected $table = 'panic_categories';
 
     public $incrementing = false;

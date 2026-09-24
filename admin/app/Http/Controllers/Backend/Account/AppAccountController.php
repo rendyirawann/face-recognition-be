@@ -238,6 +238,42 @@ class AppAccountController extends Controller implements HasMiddleware
             : back()->withErrors(['student_id' => $result['message']]);
     }
 
+    /**
+     * Setel ulang kata sandi akun aplikasi.
+     *
+     * Operator memasukkan sandi baru, dan API menandai akunnya
+     * `must_change_password` sehingga pemiliknya wajib menggantinya saat
+     * login berikutnya. Itu penting: sandi ini diketik orang lain dan
+     * sempat terbaca di layar, jadi tidak boleh menjadi sandi permanen.
+     *
+     * Sandi lama tidak diminta — justru itu gunanya, karena yang
+     * membutuhkan ini adalah siswa yang lupa sandinya. Pengamannya ada di
+     * tempat lain: `authorizeAccount()` menolak akun di luar cakupan
+     * sekolah operator, dan API menolak sekali lagi di sisinya.
+     */
+    public function resetPassword(Request $request, string $id): RedirectResponse
+    {
+        $request->validate([
+            'new_password' => ['required', 'string', 'min:8', 'confirmed'],
+        ], [], ['new_password' => 'kata sandi baru']);
+
+        $account = User::query()
+            ->whereNull('deleted_at')
+            ->with(['children:id,school_id'])
+            ->findOrFail($id);
+
+        $this->authorizeAccount($account);
+
+        $result = AbsensiApi::make()->call('PATCH', "/v1/users/{$id}", [
+            'new_password' => $request->input('new_password'),
+        ]);
+
+        return $result['success']
+            ? back()->with('success', 'Kata sandi berhasil disetel ulang. '
+                .'Pemilik akun wajib menggantinya saat login berikutnya.')
+            : back()->withErrors(['new_password' => $result['message']]);
+    }
+
     /** Putuskan tautan seorang anak dari akun orang tua. */
     public function unlinkChild(Request $request, string $id, string $studentId): RedirectResponse
     {

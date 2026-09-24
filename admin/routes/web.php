@@ -58,32 +58,11 @@ Route::any('/dine-sync-pos', function () {
 
 
 
-// --- TARUH DEBUG DISINI (DI LUAR MIDDLEWARE AUTH) ---
-Route::get('/admin/debug-session', function () {
-    $user = auth()->user();
-
-    // Cek manual apakah tabel bans error
-    $bannedStatus = 'Tidak dicek';
-    $error = null;
-
-    if ($user) {
-        try {
-            // Kita coba panggil paksa relasi banned-nya
-            $bannedStatus = $user->isBanned() ? 'YA TER-BANNED' : 'AMAN';
-        } catch (\Exception $e) {
-            $bannedStatus = 'ERROR SAAT CEK BANNED: ' . $e->getMessage();
-        }
-    }
-
-    return [
-        'status_login' => $user ? 'SUDAH LOGIN' : 'BELUM LOGIN / SESI HILANG',
-        'user_id' => $user?->id,
-        'user_name' => $user?->name,
-        'session_id' => session()->getId(),
-        'driver_session' => config('session.driver'),
-        'cek_banned' => $bannedStatus,
-    ];
-});
+// Rute debug `/admin/debug-session` dulu berada di sini, sengaja di LUAR
+// middleware auth. Itu membuatnya dapat dibuka siapa pun tanpa login, dan
+// jawabannya menyebut driver sesi serta ID sesi pengunjung. Versi yang sama
+// sudah ada di dalam grup auth di bawah, sehingga yang publik ini hanya
+// menambah permukaan serang tanpa menambah kemampuan mendiagnosis.
 
 // NOTE: Route /login POST dihapus dari sini karena sudah ada di auth.php
 // agar tidak bentrok "Route [login] defined twice".
@@ -101,8 +80,8 @@ Route::middleware(['auth', 'forbid-banned-user'])->group(function () {
 
     // --- MY ACCOUNT / PROFILE (accessible by ALL authenticated users) ---
     Route::get('/admin/my-account', [AccountController::class, 'index'])->name('account.index');
-    Route::get('/admin/my-account/{id}/avatar', [AccountController::class, 'editAvatar'])->name('avatar-edit');
-    Route::post('/admin/my-account/{id}/update-avatar', [AccountController::class, 'updateAvatar'])->name('avatar-update');
+    Route::get('/admin/my-account/{id}/avatar', [AccountController::class, 'editAvatar'])->name('avatar-edit')->whereUuid('id');
+    Route::post('/admin/my-account/{id}/update-avatar', [AccountController::class, 'updateAvatar'])->name('avatar-update')->whereUuid('id');
 
     // Hanya aksi yang benar-benar ada di controller. Tanpa batasan ini,
     // Route::resource mendaftarkan create/store/show/destroy yang metodenya
@@ -145,10 +124,10 @@ Route::middleware(['auth', 'forbid-banned-user'])->group(function () {
         Route::resource('/admin/users', UserController::class)->except(['create'])->whereUuid('user');
         Route::get('/admin/get-datauser', [UserController::class, 'getDataUsers'])->name('get-users');
         Route::post('/admin/users/mass-delete', [UserController::class, 'massDelete'])->name('users.mass-delete');
-        Route::get('/admin/get-user-show-log/{id}', [UserController::class, 'getLoginSession'])->name('get-user-show-log');
-        Route::get('/admin/get-user-show-log-activity/{id}', [UserController::class, 'getActivity'])->name('get-user-show-log-activity');
-        Route::post('/admin/users/{id}/ban', [UserController::class, 'ban'])->name('users.ban');
-        Route::post('/admin/users/{id}/unban', [UserController::class, 'unban'])->name('users.unban');
+        Route::get('/admin/get-user-show-log/{id}', [UserController::class, 'getLoginSession'])->name('get-user-show-log')->whereUuid('id');
+        Route::get('/admin/get-user-show-log-activity/{id}', [UserController::class, 'getActivity'])->name('get-user-show-log-activity')->whereUuid('id');
+        Route::post('/admin/users/{id}/ban', [UserController::class, 'ban'])->name('users.ban')->whereUuid('id');
+        Route::post('/admin/users/{id}/unban', [UserController::class, 'unban'])->name('users.unban')->whereUuid('id');
 
         Route::resource('/admin/roles', RoleController::class)->except(['create'])->whereNumber('role');
         Route::get('/admin/get-datarole', [RoleController::class, 'getDataRoles'])->name('get-datarole');
@@ -172,16 +151,16 @@ Route::middleware(['auth', 'forbid-banned-user'])->group(function () {
     // --- Master: Kelas (rombel) ---
     Route::get('/admin/classrooms', [ClassroomController::class, 'index'])->name('classrooms.index');
     Route::post('/admin/classrooms', [ClassroomController::class, 'store'])->name('classrooms.store');
-    Route::put('/admin/classrooms/{classroom}', [ClassroomController::class, 'update'])->name('classrooms.update');
-    Route::delete('/admin/classrooms/{classroom}', [ClassroomController::class, 'destroy'])->name('classrooms.destroy');
+    Route::put('/admin/classrooms/{classroom}', [ClassroomController::class, 'update'])->name('classrooms.update')->whereUuid('classroom');
+    Route::delete('/admin/classrooms/{classroom}', [ClassroomController::class, 'destroy'])->name('classrooms.destroy')->whereUuid('classroom');
 
     // --- Master: Siswa & wali murid ---
     Route::get('/admin/students/data', [StudentController::class, 'data'])->name('students.data');
     Route::get('/admin/students/classrooms', [StudentController::class, 'classroomsBySchool'])->name('students.classrooms');
     Route::resource('/admin/students', StudentController::class)->names('students');
-    Route::post('/admin/students/{student}/guardians', [StudentController::class, 'storeGuardian'])->name('students.guardians.store');
-    Route::put('/admin/students/{student}/guardians/{guardian}', [StudentController::class, 'updateGuardian'])->name('students.guardians.update');
-    Route::delete('/admin/students/{student}/guardians/{guardian}', [StudentController::class, 'destroyGuardian'])->name('students.guardians.destroy');
+    Route::post('/admin/students/{student}/guardians', [StudentController::class, 'storeGuardian'])->name('students.guardians.store')->whereUuid('student');
+    Route::put('/admin/students/{student}/guardians/{guardian}', [StudentController::class, 'updateGuardian'])->name('students.guardians.update')->whereUuid(['student', 'guardian']);
+    Route::delete('/admin/students/{student}/guardians/{guardian}', [StudentController::class, 'destroyGuardian'])->name('students.guardians.destroy')->whereUuid(['student', 'guardian']);
 
     // --- Biometrik: pendaftaran wajah ---
     Route::get('/admin/biometric', [FaceEnrollmentController::class, 'index'])->name('biometric.index');
@@ -189,12 +168,12 @@ Route::middleware(['auth', 'forbid-banned-user'])->group(function () {
     // /admin/biometric/{student}, kalau tidak Laravel akan mencoba
     // mengikat "scan" sebagai model Student dan menghasilkan 404.
     Route::get('/admin/biometric/scan', [FaceEnrollmentController::class, 'scan'])->name('biometric.scan');
-    Route::get('/admin/biometric/{student}/capture', [FaceEnrollmentController::class, 'capture'])->name('biometric.capture');
-    Route::post('/admin/biometric/{student}', [FaceEnrollmentController::class, 'store'])->name('biometric.store');
-    Route::post('/admin/biometric/{student}/batch', [FaceEnrollmentController::class, 'storeBatch'])->name('biometric.store-batch');
-    Route::get('/admin/biometric/{student}', [FaceEnrollmentController::class, 'show'])->name('biometric.show');
-    Route::delete('/admin/biometric/sample/{enrollment}', [FaceEnrollmentController::class, 'destroy'])->name('biometric.destroy');
-    Route::delete('/admin/biometric/{student}/samples', [FaceEnrollmentController::class, 'reset'])->name('biometric.reset');
+    Route::get('/admin/biometric/{student}/capture', [FaceEnrollmentController::class, 'capture'])->name('biometric.capture')->whereUuid('student');
+    Route::post('/admin/biometric/{student}', [FaceEnrollmentController::class, 'store'])->name('biometric.store')->whereUuid('student');
+    Route::post('/admin/biometric/{student}/batch', [FaceEnrollmentController::class, 'storeBatch'])->name('biometric.store-batch')->whereUuid('student');
+    Route::get('/admin/biometric/{student}', [FaceEnrollmentController::class, 'show'])->name('biometric.show')->whereUuid('student');
+    Route::delete('/admin/biometric/sample/{enrollment}', [FaceEnrollmentController::class, 'destroy'])->name('biometric.destroy')->whereUuid('enrollment');
+    Route::delete('/admin/biometric/{student}/samples', [FaceEnrollmentController::class, 'reset'])->name('biometric.reset')->whereUuid('student');
 
     // --- Absensi ---
     Route::get('/admin/attendances', [AttendanceController::class, 'index'])->name('attendances.index');
@@ -205,18 +184,18 @@ Route::middleware(['auth', 'forbid-banned-user'])->group(function () {
     Route::post('/admin/attendances/manual', [AttendanceController::class, 'manual'])->name('attendances.manual');
     Route::post('/admin/attendances/bulk', [AttendanceController::class, 'bulk'])->name('attendances.bulk');
     // Hanya superadmin; lihat AttendanceController::destroy.
-    Route::delete('/admin/attendances/{attendance}', [AttendanceController::class, 'destroy'])->name('attendances.destroy');
+    Route::delete('/admin/attendances/{attendance}', [AttendanceController::class, 'destroy'])->name('attendances.destroy')->whereUuid('attendance');
     Route::get('/admin/attendance-rules', [AttendanceController::class, 'rules'])->name('attendance-rules.index');
     Route::post('/admin/attendance-rules', [AttendanceController::class, 'storeRule'])->name('attendance-rules.store');
 
     // --- Perangkat tablet ---
     Route::get('/admin/devices', [DeviceController::class, 'index'])->name('devices.index');
     Route::post('/admin/devices', [DeviceController::class, 'store'])->name('devices.store');
-    Route::get('/admin/devices/{device}', [DeviceController::class, 'show'])->name('devices.show');
-    Route::put('/admin/devices/{device}', [DeviceController::class, 'update'])->name('devices.update');
-    Route::post('/admin/devices/{device}/pairing-code', [DeviceController::class, 'pairingCode'])->name('devices.pairing-code');
-    Route::post('/admin/devices/{device}/revoke', [DeviceController::class, 'revoke'])->name('devices.revoke');
-    Route::delete('/admin/devices/{device}', [DeviceController::class, 'destroy'])->name('devices.destroy');
+    Route::get('/admin/devices/{device}', [DeviceController::class, 'show'])->name('devices.show')->whereUuid('device');
+    Route::put('/admin/devices/{device}', [DeviceController::class, 'update'])->name('devices.update')->whereUuid('device');
+    Route::post('/admin/devices/{device}/pairing-code', [DeviceController::class, 'pairingCode'])->name('devices.pairing-code')->whereUuid('device');
+    Route::post('/admin/devices/{device}/revoke', [DeviceController::class, 'revoke'])->name('devices.revoke')->whereUuid('device');
+    Route::delete('/admin/devices/{device}', [DeviceController::class, 'destroy'])->name('devices.destroy')->whereUuid('device');
 
     // --- Notifikasi wali murid ---
     Route::get('/admin/notifications', [NotificationController::class, 'index'])->name('notifications.index');
@@ -226,7 +205,7 @@ Route::middleware(['auth', 'forbid-banned-user'])->group(function () {
     Route::post('/admin/notifications/templates', [NotificationController::class, 'storeTemplate'])->name('notifications.templates.store');
     Route::post('/admin/notifications/policy', [NotificationController::class, 'updatePolicy'])->name('notifications.policy');
     Route::post('/admin/notifications/send', [NotificationController::class, 'send'])->name('notifications.send');
-    Route::post('/admin/notifications/{outbox}/retry', [NotificationController::class, 'retry'])->name('notifications.retry');
+    Route::post('/admin/notifications/{outbox}/retry', [NotificationController::class, 'retry'])->name('notifications.retry')->whereUuid('outbox');
 
     // ====================================================
     // JARGON GO — CBT/TKA
@@ -249,11 +228,11 @@ Route::middleware(['auth', 'forbid-banned-user'])->group(function () {
     // ====================================================
     Route::get('/admin/panic', [PanicController::class, 'index'])->name('panic.index');
     Route::get('/admin/panic/unmask-logs', [PanicController::class, 'unmaskLogs'])->name('panic.unmask-logs');
-    Route::get('/admin/panic/{id}', [PanicController::class, 'show'])->name('panic.show');
-    Route::post('/admin/panic/{id}/moderate', [PanicController::class, 'moderate'])->name('panic.moderate');
-    Route::post('/admin/panic/{id}/status', [PanicController::class, 'updateStatus'])->name('panic.status');
-    Route::post('/admin/panic/{id}/comment', [PanicController::class, 'comment'])->name('panic.comment');
-    Route::post('/admin/panic/{id}/unmask', [PanicController::class, 'unmask'])->name('panic.unmask');
+    Route::get('/admin/panic/{id}', [PanicController::class, 'show'])->name('panic.show')->whereUuid('id');
+    Route::post('/admin/panic/{id}/moderate', [PanicController::class, 'moderate'])->name('panic.moderate')->whereUuid('id');
+    Route::post('/admin/panic/{id}/status', [PanicController::class, 'updateStatus'])->name('panic.status')->whereUuid('id');
+    Route::post('/admin/panic/{id}/comment', [PanicController::class, 'comment'])->name('panic.comment')->whereUuid('id');
+    Route::post('/admin/panic/{id}/unmask', [PanicController::class, 'unmask'])->name('panic.unmask')->whereUuid('id');
 
     // ====================================================
     // JARGON GO — Pemberkasan kepegawaian
@@ -261,9 +240,9 @@ Route::middleware(['auth', 'forbid-banned-user'])->group(function () {
     Route::get('/admin/documents', [DocumentController::class, 'index'])->name('documents.index');
     Route::get('/admin/documents/types', [DocumentController::class, 'types'])->name('documents.types');
     Route::post('/admin/documents/types', [DocumentController::class, 'storeType'])->name('documents.types.store');
-    Route::get('/admin/documents/{id}', [DocumentController::class, 'show'])->name('documents.show');
-    Route::post('/admin/documents/{id}/review', [DocumentController::class, 'review'])->name('documents.review');
-    Route::post('/admin/documents/files/{fileId}/review', [DocumentController::class, 'reviewFile'])->name('documents.files.review');
+    Route::get('/admin/documents/{id}', [DocumentController::class, 'show'])->name('documents.show')->whereUuid('id');
+    Route::post('/admin/documents/{id}/review', [DocumentController::class, 'review'])->name('documents.review')->whereUuid('id');
+    Route::post('/admin/documents/files/{fileId}/review', [DocumentController::class, 'reviewFile'])->name('documents.files.review')->whereUuid('fileId');
 
     // ====================================================
     // JARGON GO — Akun aplikasi
@@ -277,9 +256,14 @@ Route::middleware(['auth', 'forbid-banned-user'])->group(function () {
     Route::get('/admin/app-accounts/bulk', [AppAccountController::class, 'bulk'])->name('app-accounts.bulk');
     Route::post('/admin/app-accounts/bulk', [AppAccountController::class, 'bulkStore'])->name('app-accounts.bulk.store');
     Route::get('/admin/app-accounts/students', [AppAccountController::class, 'searchStudents'])->name('app-accounts.students');
-    Route::get('/admin/app-accounts/{id}', [AppAccountController::class, 'show'])->name('app-accounts.show');
-    Route::post('/admin/app-accounts/{id}/children', [AppAccountController::class, 'linkChild'])->name('app-accounts.children.link');
-    Route::delete('/admin/app-accounts/{id}/children/{studentId}', [AppAccountController::class, 'unlinkChild'])->name('app-accounts.children.unlink');
+    // `{id}` dibatasi berbentuk UUID. Tanpa itu, alamat seperti
+    // /admin/app-accounts/abc diteruskan ke findOrFail dan Postgres menjawab
+    // "invalid input syntax for type uuid" — muncul sebagai 500, padahal
+    // yang benar 404.
+    Route::get('/admin/app-accounts/{id}', [AppAccountController::class, 'show'])->name('app-accounts.show')->whereUuid('id');
+    Route::post('/admin/app-accounts/{id}/reset-password', [AppAccountController::class, 'resetPassword'])->name('app-accounts.reset-password')->whereUuid('id');
+    Route::post('/admin/app-accounts/{id}/children', [AppAccountController::class, 'linkChild'])->name('app-accounts.children.link')->whereUuid('id');
+    Route::delete('/admin/app-accounts/{id}/children/{studentId}', [AppAccountController::class, 'unlinkChild'])->name('app-accounts.children.unlink')->whereUuid(['id', 'studentId']);
 
     // --- Berkas tersimpan (foto wajah, pemberkasan, lampiran pengaduan) ---
     //
