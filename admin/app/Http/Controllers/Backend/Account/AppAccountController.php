@@ -450,9 +450,20 @@ class AppAccountController extends Controller implements HasMiddleware
      * @param  array<int, string>|null  $allowed
      * @return array<string, int>
      */
+    /**
+     * Angka ringkasan di atas daftar akun.
+     *
+     * SATU kueri, bukan empat.
+     *
+     * Versi sebelumnya menjalankan satu COUNT per angka, dan masing-masing
+     * membawa subquery tenant `OR EXISTS` ke `student_guardians`. Untuk
+     * Cabang Dinas Wilayah I daftar sekolahnya 646 UUID, dan seluruhnya
+     * diulang empat kali setiap halaman ini dibuka. `count(*) FILTER`
+     * menghitung keempatnya dalam satu pemindaian.
+     */
     private function stats(?array $allowed): array
     {
-        $base = fn () => User::query()
+        $query = User::query()
             ->whereNull('deleted_at')
             ->whereNotNull('identity_number')
             ->when($allowed !== null, function ($q) use ($allowed) {
@@ -468,15 +479,28 @@ class AppAccountController extends Controller implements HasMiddleware
                 });
             });
 
-        $byRole = fn (string $role) => (clone $base())
-            ->whereHas('roles', fn ($r) => $r->where('name', $role))
-            ->count();
+        // Peran ada di tabel pivot Spatie, jadi penyaringnya subquery
+        // EXISTS — sekali per baris, bukan sekali per angka.
+        $peran = fn (string $nama) => "EXISTS (
+            SELECT 1 FROM model_has_roles mhr
+              JOIN roles r ON r.id = mhr.role_id
+             WHERE mhr.model_id = users.id
+               AND mhr.model_type = 'App\Models\User'
+               AND r.name = '{$nama}'
+        )";
+
+        $row = $query->selectRaw(
+            'count(*) AS total,'
+            .' count(*) FILTER (WHERE '.$peran('siswa').') AS siswa,'
+            .' count(*) FILTER (WHERE '.$peran('orang_tua').') AS orang_tua,'
+            .' count(*) FILTER (WHERE must_change_password) AS belum_ganti_sandi'
+        )->first();
 
         return [
-            'total' => $base()->count(),
-            'siswa' => $byRole('siswa'),
-            'orang_tua' => $byRole('orang_tua'),
-            'belum_ganti_sandi' => $base()->where('must_change_password', true)->count(),
+            'total' => (int) ($row->total ?? 0),
+            'siswa' => (int) ($row->siswa ?? 0),
+            'orang_tua' => (int) ($row->orang_tua ?? 0),
+            'belum_ganti_sandi' => (int) ($row->belum_ganti_sandi ?? 0),
         ];
     }
 }
