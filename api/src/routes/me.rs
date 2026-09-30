@@ -211,6 +211,31 @@ pub async fn home(
         available_menus.push("pemberkasan".to_string());
     }
 
+    // Menu PKL hanya untuk siswa yang HARI INI punya penempatan aktif.
+    //
+    // Ditanyakan ke basis data, bukan disimpulkan dari peran, karena PKL
+    // bukan sifat siswanya melainkan keadaan yang berlaku pada rentang
+    // tanggal tertentu. Menunya hilang sendiri begitu masa PKL berakhir,
+    // tanpa ada yang harus mematikannya.
+    //
+    // Kueri ini hanya dijalankan untuk akun siswa: 400.000 siswa non-PKL
+    // tidak perlu membayar satu EXISTS pada setiap pembukaan beranda, dan
+    // peran lain tidak pernah punya penempatan.
+    if user.roles.iter().any(|r| r == "siswa") {
+        if let Some(sid) = user.students.first() {
+            let sedang_pkl: bool = sqlx::query_scalar(
+                "SELECT EXISTS (SELECT 1 FROM pkl_penempatan_berlaku WHERE student_id = $1)",
+            )
+            .bind(sid)
+            .fetch_one(&state.db)
+            .await?;
+
+            if sedang_pkl {
+                available_menus.push("pkl".to_string());
+            }
+        }
+    }
+
     // Menu pengenalan wajah mengikuti `operate_face_kiosk`.
     //
     // Sebelumnya daftar peran tetap berisi superadmin dan admin_dinas saja,
