@@ -281,13 +281,11 @@ async fn muat_penempatan(state: &AppState, student_id: Uuid) -> ApiResult<Active
     .fetch_optional(&state.db)
     .await?;
 
-    let row = row.ok_or_else(|| {
-        ApiError::NotFound(
-            "Anda tidak sedang menjalani PKL, atau masa PKL Anda sudah berakhir. \
-             Absensi dilakukan di sekolah."
-                .into(),
-        )
-    })?;
+    // ApiError::NotFound menerima KATA BENDA, bukan kalimat: pembentuknya
+    // menambahkan "tidak ditemukan" di belakang, sehingga kalimat utuh di
+    // sini menghasilkan pesan yang canggung. Penjelasan lengkapnya ada di
+    // aplikasi, yang tahu konteksnya dan punya ruang untuk itu.
+    let row = row.ok_or_else(|| ApiError::NotFound("penempatan PKL yang berlaku".into()))?;
 
     Ok(ActivePlacement {
         placement_id: row.try_get("placement_id")?,

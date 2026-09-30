@@ -1,0 +1,26 @@
+# Akhir baris.
+#
+# MENGAPA BERKAS INI ADA
+#
+# sqlx meng-checksum ISI berkas migrasi apa adanya. Di Windows dengan
+# `core.autocrlf=true`, Git mengubah LF menjadi CRLF saat checkout,
+# sehingga berkas yang sudah pernah diterapkan tampak BERUBAH dan API
+# menolak menyala:
+#
+#     migration 7 was previously applied but has been modified
+#
+# Tidak ada yang menyunting berkasnya; yang berubah hanya akhir barisnya.
+# Kegagalan ini sulit dilacak karena `git diff` tetap bersih — Git
+# membandingkan versi ternormalisasi, bukan byte di disk.
+#
+# `eol=lf` memaksa working tree memakai LF berapa pun setelan autocrlf
+# mesinnya.
+*.sql   text eol=lf
+
+# Skrip yang dijalankan di dalam container Linux. CRLF pada baris shebang
+# membuat kernel mencari penafsir bernama "/bin/sh\r" yang tidak ada.
+*.sh    text eol=lf
+
+# Berkas Windows memang CRLF.
+*.bat   text eol=crlf
+*.ps1   text eol=crlf

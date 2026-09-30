@@ -373,6 +373,18 @@ class DashboardAdminController extends Controller
                 FROM students WHERE deleted_at IS NULL AND status = 'aktif'
                 GROUP BY school_id
             ),
+            -- SUM, bukan pembacaan satu baris.
+            --
+            -- `attendance_daily_summary` berisi satu baris PER KELAS, bukan
+            -- per sekolah: `rebuild_daily_rollup` mengelompokkan per
+            -- `classroom_id`, dan UUID nil di kolom itu hanya pengganti NULL
+            -- untuk absensi yang tidak terikat kelas — BUKAN penanda
+            -- tingkat-sekolah. Tidak ada baris agregat per sekolah di tabel itu,
+            -- jadi totalnya harus dijumlahkan lintas kelas.
+            --
+            -- Komentar di migrasi 0007 sempat menyatakan sebaliknya dan itu
+            -- keliru; catatannya dipindahkan ke sini karena berkas migrasi
+            -- yang sudah diterapkan tidak boleh disunting.
             hadir AS (
                 SELECT school_id,
                        SUM(hadir + terlambat + dispensasi) AS present
