@@ -48,23 +48,61 @@ pub struct HomeSummary {
     pub document_actions: i64,
     /// Menu yang boleh ditampilkan, sesuai izin akun.
     pub available_menus: Vec<String>,
+
+    /// Boleh MENGUBAH status laporan, bukan sekadar melihatnya.
+    ///
+    /// Dikirim sebagai penanda siap-pakai, bukan daftar izin mentah:
+    /// aplikasi tidak perlu tahu bahwa penanganan laporan tersebar di
+    /// empat izin berbeda menurut jenjangnya, dan menyalin aturan itu ke
+    /// sisi klien berarti dua tempat yang harus diubah bersamaan.
+    pub can_handle_panic: bool,
+
+    /// Boleh memverifikasi pengajuan berkas.
+    pub can_verify_document: bool,
 }
 
 /// Peran yang boleh membuka menu pengenalan wajah di aplikasi.
 ///
-/// Sengaja daftar PERAN, bukan izin: izin pendaftaran wajah dimiliki juga
-/// guru dan staff TU untuk keperluan dashboard, sedangkan pintu absensi di
-/// ponsel harus lebih sempit daripada itu.
-const ADMIN_FACE_ROLES: [&str; 2] = ["superadmin", "admin_dinas"];
-
 /// Menu di aplikasi dibatasi PERAN, bukan hanya izin.
 ///
-/// Izin yang sama dipakai dashboard web: `view_panic_feed` harus tetap
-/// dimiliki `sekolah`, `capdis`, dan `admin_dinas` agar mereka bisa menangani
-/// laporan di web. Menyaring menu mobile lewat izin itu akan ikut mencabut
-/// akses web mereka.
-const PANIC_MENU_ROLES: [&str; 3] = ["superadmin", "admin", "siswa"];
-const PEMBERKASAN_MENU_ROLES: [&str; 1] = ["guru"];
+/// Izin yang sama dipakai dashboard web: `view_panic_feed` dan
+/// `view_document_submission` harus tetap dimiliki peran yang menangani
+/// perkaranya di web. Menyaring menu mobile lewat izin itu saja akan ikut
+/// mencabut akses web mereka.
+///
+/// Daftar di bawah memuat peran yang benar-benar PUNYA PEKERJAAN pada menu
+/// itu, bukan sekadar boleh melihatnya.
+
+/// Laporan (Panic Button): yang membuat laporan, dan yang menanganinya di
+/// tiap jenjang.
+///
+/// TIDAK memuat `orang_tua` dan `guru` — izin laporan keduanya sudah dicabut
+/// migrasi 0018, dan orang tua memang hanya memantau absensi anaknya.
+///
+/// TIDAK memuat `staff_tu`: ia memegang `view_panic_feed` warisan migrasi
+/// 0011 tetapi tidak satu pun izin `handle_panic_*`, jadi tidak ada yang
+/// bisa dikerjakannya di sana. Laporan perundungan dan pungli menyangkut
+/// orang-orang di sekolah yang sama, dan menaruh satu peran lagi di
+/// hadapannya tanpa pekerjaan yang jelas hanya memperluas siapa yang
+/// membacanya.
+const PANIC_MENU_ROLES: [&str; 7] = [
+    "superadmin",
+    "admin_dinas",
+    "capdis",
+    "sekolah",
+    "admin",
+    "kepala_sekolah",
+    "siswa",
+];
+
+/// Pemberkasan: yang mengajukan berkas, dan yang memverifikasinya.
+const PEMBERKASAN_MENU_ROLES: [&str; 5] = [
+    "superadmin",
+    "admin_dinas",
+    "kepala_sekolah",
+    "staff_tu",
+    "guru",
+];
 
 fn has_any_role(user: &AuthUser, roles: &[&str]) -> bool {
     user.roles.iter().any(|r| roles.contains(&r.as_str()))
@@ -159,27 +197,45 @@ pub async fn home(
     {
         available_menus.push("absensi".to_string());
     }
-    if user.has_permission("view_panic_feed") && has_any_role(&user, &PANIC_MENU_ROLES) {
+    // Dua bentuk izin, bukan satu. Peran lama (`siswa`, `admin`,
+    // `kepala_sekolah`) memakai `view_panic_feed`; peran berjenjang yang
+    // ditambahkan migrasi 0017 (`sekolah`, `capdis`) memakai
+    // `view_panic_scope`. Memeriksa salah satunya saja membuat separuh
+    // peran penangan kehilangan menunya tanpa ada yang menyadarinya.
+    if (user.has_permission("view_panic_feed") || user.has_permission("view_panic_scope"))
+        && has_any_role(&user, &PANIC_MENU_ROLES)
+    {
         available_menus.push("panic_button".to_string());
     }
     if has_any_role(&user, &PEMBERKASAN_MENU_ROLES) {
         available_menus.push("pemberkasan".to_string());
     }
 
-    // Menu pengenalan wajah HANYA untuk admin/superadmin.
+    // Menu pengenalan wajah mengikuti `operate_face_kiosk`.
     //
-    // Dibatasi PERAN, bukan izin, dan itu disengaja. Izin
-    // `create_face_enrollment` dimiliki juga guru dan staff TU supaya
-    // mereka bisa mendaftarkan wajah dari dashboard — tetapi menu ini di
-    // aplikasi membuka alat yang MENCATAT KEHADIRAN, dan kehadiran tidak
-    // boleh bisa dicatat dari ponsel pribadi siapa pun yang kebetulan
-    // memegang izin itu.
+    // Sebelumnya daftar peran tetap berisi superadmin dan admin_dinas saja,
+    // dan itu BERTENTANGAN dengan migrasi 0015 yang membuat izin ini justru
+    // untuk menjawab pertanyaan yang sama — di sana ia diberikan kepada
+    // superadmin, admin_dinas, kepala_sekolah, dan staff_tu, dengan alasan
+    // yang tertulis: operator piket boleh menjalankan gerbang tanpa boleh
+    // menyentuh data biometrik.
     //
-    // Guru tetap dapat mendaftarkan wajah lewat dashboard /admin; yang
-    // tidak diberikan adalah pintu absensi di ponsel.
-    if has_any_role(&user, &ADMIN_FACE_ROLES) {
+    // Dua daftar yang menjawab pertanyaan sama dan saling berbeda pasti
+    // menyimpang lagi; yang dipakai adalah izinnya, dan siapa yang
+    // memegangnya diputuskan di migrasi.
+    //
+    // Izin ini SENGAJA tidak diberikan kepada guru: menu ini membuka alat
+    // yang MENCATAT KEHADIRAN, dan mempersempit siapa yang boleh
+    // mencatatnya mempersempit pula peluang absensi titipan. Guru tetap
+    // dapat mendaftarkan wajah lewat dashboard.
+    if user.has_permission("operate_face_kiosk") {
         available_menus.push("face_recognition".to_string());
     }
+
+    let can_handle_panic = user.has_permission("handle_panic_report")
+        || user.has_permission("handle_panic_sekolah")
+        || user.has_permission("handle_panic_capdis")
+        || user.has_permission("handle_panic_disdik");
 
     Ok(ApiResponse::new(HomeSummary {
         greeting: greeting_for(&user.name),
@@ -189,6 +245,8 @@ pub async fn home(
         panic_updates,
         document_actions,
         available_menus,
+        can_handle_panic,
+        can_verify_document: user.has_permission("verify_document_submission"),
     }))
 }
 
