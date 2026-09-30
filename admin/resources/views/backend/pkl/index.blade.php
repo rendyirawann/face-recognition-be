@@ -202,7 +202,7 @@
 
         @can('manage_pkl')
             @include('backend.pkl._modal_tempat')
-            @include('backend.pkl._modal_penempatan')
+            @include('backend.pkl._modal_penempatan', ['siswaAwal' => $siswaAwal ?? null])
         @endcan
     @endif
 @endsection

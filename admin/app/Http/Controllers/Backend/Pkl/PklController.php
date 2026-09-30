@@ -84,7 +84,24 @@ class PklController extends Controller implements HasMiddleware
                 ->withQueryString();
         }
 
+        // Siswa yang dibawa dari halaman detailnya. Modal penempatan
+        // membukanya sendiri dengan siswa itu sudah terpilih, sehingga
+        // operator tidak perlu mencari siswa yang baru saja ia buka.
+        $siswaAwal = null;
+        if ($id = $request->query('student_id')) {
+            $siswaAwal = Student::withoutTenantScope()
+                ->with('classroom:id,name')
+                ->find($id);
+
+            // Di luar cakupan diperlakukan seperti tidak ada.
+            if ($siswaAwal && Tenant::schoolIds() !== null
+                && ! in_array($siswaAwal->school_id, Tenant::schoolIds(), true)) {
+                $siswaAwal = null;
+            }
+        }
+
         return view('backend.pkl.index', [
+            'siswaAwal' => $siswaAwal,
             'places' => $places,
             'placements' => $placements,
             'schoolId' => $schoolId,

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Attendance;
 use App\Models\Classroom;
 use App\Models\Student;
+use App\Models\PklPlacement;
 use App\Models\StudentGuardian;
 use App\Models\User;
 use App\Support\Tenant;
@@ -186,6 +187,17 @@ class StudentController extends Controller implements HasMiddleware
                 ->get(['id', 'name', 'username', 'identity_number', 'is_active',
                        'must_change_password', 'last_login'])
                 ->keyBy('id'),
+
+            // Penempatan PKL TERBARU, bukan hanya yang sedang berlaku.
+            //
+            // Yang sudah selesai tetap perlu terlihat: operator yang membuka
+            // siswa ini ingin tahu "pernah PKL di mana", bukan hanya "sedang
+            // PKL atau tidak". Statusnya dihitung di view dari tanggalnya.
+            'pkl' => PklPlacement::query()
+                ->where('student_id', $student->id)
+                ->with('place:id,name,address,radius_meters')
+                ->orderByDesc('starts_on')
+                ->first(),
         ]);
     }
 

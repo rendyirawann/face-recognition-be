@@ -165,6 +165,77 @@
                 </div>
             </div>
 
+            {{-- PKL.
+
+                 Detail siswa sebelumnya tidak menyebut PKL sama sekali,
+                 sehingga tidak ada cara mengetahui seorang siswa sedang
+                 magang atau tidak dari halamannya sendiri — dan
+                 menempatkannya berarti pergi ke menu PKL lalu mencarinya
+                 lagi di sana. --}}
+            @can('view_pkl')
+                @php
+                    $pklSisa = $pkl ? (int) now()->startOfDay()->diffInDays($pkl->ends_on, false) : null;
+                    $pklBerlaku = $pkl && $pkl->status === 'aktif'
+                        && ! $pkl->starts_on->isFuture() && $pklSisa >= 0;
+                @endphp
+                <div class="card card-flush border border-gray-200 mb-5">
+                    <div class="card-header pt-5">
+                        <h3 class="card-title fw-bold">Praktik Kerja Lapangan</h3>
+                    </div>
+                    <div class="card-body pt-3">
+                        @if ($pkl)
+                            <div class="d-flex align-items-start justify-content-between mb-2">
+                                <div>
+                                    <span class="fw-semibold fs-7 d-block">{{ $pkl->place->name ?? '—' }}</span>
+                                    <span class="text-muted fs-9">{{ $pkl->place->address ?? '' }}</span>
+                                </div>
+                                @if ($pkl->status !== 'aktif')
+                                    <span class="badge badge-light-secondary fs-9">{{ $pkl->status }}</span>
+                                @elseif ($pklBerlaku)
+                                    <span class="badge badge-light-success fs-9">berlaku</span>
+                                @elseif ($pkl->starts_on->isFuture())
+                                    <span class="badge badge-light-info fs-9">akan datang</span>
+                                @else
+                                    <span class="badge badge-light-warning fs-9">masa habis</span>
+                                @endif
+                            </div>
+
+                            <div class="fs-8 text-muted">
+                                {{ $pkl->starts_on->format('d/m/Y') }} &ndash; {{ $pkl->ends_on->format('d/m/Y') }}
+                                @if ($pklBerlaku)
+                                    &middot; <span class="text-success fw-semibold">sisa {{ $pklSisa }} hari</span>
+                                @endif
+                            </div>
+
+                            @if ($pklBerlaku)
+                                <div class="alert alert-light-success py-2 px-3 fs-9 mt-3 mb-0">
+                                    Siswa ini mengabsenkan diri dari aplikasi, di tempat PKL,
+                                    dalam radius {{ $pkl->place->radius_meters ?? '—' }} m.
+                                </div>
+                            @elseif ($pkl->status === 'aktif' && $pklSisa !== null && $pklSisa < 0)
+                                <div class="alert alert-light-warning py-2 px-3 fs-9 mt-3 mb-0">
+                                    Masa PKL sudah berakhir, sehingga siswa ini tidak dapat lagi
+                                    absen dari aplikasi. Absensinya kembali di sekolah.
+                                </div>
+                            @endif
+
+                            <a href="{{ route('pkl.placements.show', $pkl->id) }}"
+                               class="btn btn-sm btn-light py-1 px-3 fs-9 mt-3">Lihat bukti absensi</a>
+                        @else
+                            <p class="text-muted fs-8 mb-3">
+                                Siswa ini tidak sedang PKL, sehingga absensinya dilakukan di sekolah.
+                            </p>
+                            @can('manage_pkl')
+                                <a href="{{ route('pkl.index', [
+                                    'school_id' => $student->school_id,
+                                    'student_id' => $student->id,
+                                ]) }}" class="btn btn-sm btn-light-primary">Tempatkan PKL</a>
+                            @endcan
+                        @endif
+                    </div>
+                </div>
+            @endcan
+
             {{-- Akun aplikasi.
 
                  Ditaruh DI SINI, bukan hanya di Layanan -> Akun Aplikasi.

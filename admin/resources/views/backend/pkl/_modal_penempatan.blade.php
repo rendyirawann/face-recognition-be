@@ -22,8 +22,10 @@
                         <div class="col-12">
                             <label class="form-label required">Siswa</label>
                             <input type="text" id="cari-siswa" class="form-control"
+                                   value="{{ $siswaAwal->full_name ?? '' }}"
                                    placeholder="Ketik nama atau NISN, minimal 3 huruf" autocomplete="off">
-                            <input type="hidden" name="student_id" id="f-student-id" required>
+                            <input type="hidden" name="student_id" id="f-student-id" required
+                                   value="{{ $siswaAwal->id ?? '' }}">
                             <div id="hasil-siswa" class="list-group mt-2" style="max-height:200px;overflow-y:auto"></div>
                             @error('student_id') <div class="text-danger fs-8 mt-1">{{ $message }}</div> @enderror
                         </div>
@@ -100,6 +102,17 @@
 </div>
 
 <script>
+    @if (! empty($siswaAwal))
+        // Datang dari halaman detail siswa: modalnya dibuka sendiri, dengan
+        // siswanya sudah terisi. Membiarkan operator menekan "Tempatkan
+        // siswa" sekali lagi setelah ia baru saja menekan "Tempatkan PKL"
+        // di halaman sebelumnya adalah satu ketukan tanpa guna.
+        document.addEventListener('DOMContentLoaded', function () {
+            var m = document.getElementById('modal-penempatan');
+            if (m && window.bootstrap) { new bootstrap.Modal(m).show(); }
+        });
+    @endif
+
     (function () {
         var kotak = document.getElementById('cari-siswa');
         var hasil = document.getElementById('hasil-siswa');
