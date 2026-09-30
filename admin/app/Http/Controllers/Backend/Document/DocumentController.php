@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Backend\Document;
 
 use App\Models\DocumentSubmission;
 use App\Models\DocumentType;
+use App\Models\User;
 use App\Http\Controllers\Controller;
 use App\Services\AbsensiApi;
 use Illuminate\Http\RedirectResponse;
@@ -48,6 +49,18 @@ class DocumentController extends Controller implements HasMiddleware
         $query->when($request->filled('purpose'), fn ($q) => $q->where('purpose', $request->purpose));
         $query->when($request->boolean('antrean'), fn ($q) => $q->awaitingReview());
 
+        // Seluruh pengajuan milik satu orang.
+        //
+        // Pemeriksa yang membuka satu berkas hampir selalu ingin tahu
+        // riwayat pengusulnya — apakah ini pengajuan pertama, atau
+        // perbaikan dari yang sebelumnya ditolak. Tanpa penyaring ini
+        // jawabannya hanya dapat dicari dengan menggulir seluruh daftar.
+        //
+        // `visibleTo` di atas tetap berlaku, jadi penyaring ini tidak dapat
+        // dipakai mengintip pengajuan di luar cakupan.
+        $query->when($request->filled('owner_id'),
+            fn ($q) => $q->where('user_id', $request->query('owner_id')));
+
         $submissions = $query
             // Yang menunggu diperiksa naik ke atas: itulah pekerjaan
             // verifikator, sisanya sekadar arsip.
@@ -56,7 +69,12 @@ class DocumentController extends Controller implements HasMiddleware
             ->paginate(20)
             ->withQueryString();
 
+        $pengusul = $request->filled('owner_id')
+            ? User::find($request->query('owner_id'), ['id', 'name'])
+            : null;
+
         return view('backend.document.index', [
+            'pengusul' => $pengusul,
             'submissions' => $submissions,
             'statuses' => DocumentSubmission::STATUSES,
             'purposes' => DocumentType::PURPOSES,

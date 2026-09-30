@@ -39,7 +39,31 @@
 
     <div class="card card-flush border border-gray-200">
         <div class="card-header pt-6 pb-2">
+            {{-- Penanda saring-per-orang.
+
+                 WAJIB ada jalan keluarnya. Penyaring yang dipasang lewat
+                 klik pada tabel — bukan lewat formulir di atas — tidak
+                 terlihat di kotak isian mana pun, sehingga tanpa penanda
+                 ini pengguna melihat daftar yang tiba-tiba pendek dan
+                 tidak tahu mengapa maupun cara mengembalikannya. --}}
+            @if (! empty($pengusul))
+                <div class="alert alert-light-primary d-flex flex-wrap align-items-center
+                            justify-content-between gap-2 py-3 px-4 w-100 mb-4">
+                    <span class="fs-8">
+                        Menampilkan pengajuan milik
+                        <b>{{ $pengusul->name }}</b> saja.
+                    </span>
+                    <a href="{{ request()->fullUrlWithQuery(['owner_id' => null, 'page' => null]) }}"
+                       class="btn btn-sm btn-light py-1 px-3 fs-9">Tampilkan semua</a>
+                </div>
+            @endif
+
             <form method="GET" class="row g-3 w-100 align-items-end">
+                {{-- Penyaring pengusul dipertahankan saat penyaring lain diubah,
+                     supaya mengganti status tidak diam-diam melepaskannya. --}}
+                @if (! empty($pengusul))
+                    <input type="hidden" name="owner_id" value="{{ $pengusul->id }}">
+                @endif
                 <div class="col-6 col-md-3">
                     <label class="form-label fs-8 text-muted">Keperluan</label>
                     <select name="purpose" class="form-select form-select-sm" onchange="this.form.submit()">
@@ -97,7 +121,20 @@
                                     </div>
                                 </td>
                                 <td class="fs-8">
-                                    <span class="fw-semibold d-block">{{ $s->owner->name ?? '-' }}</span>
+                                    {{-- Nama pengusul dapat diklik untuk melihat SELURUH
+                                         pengajuannya. Pemeriksa yang membuka satu berkas
+                                         hampir selalu ingin tahu apakah ini pengajuan
+                                         pertama atau perbaikan dari yang sebelumnya
+                                         ditolak — dan sebelumnya jawabannya hanya dapat
+                                         dicari dengan menggulir seluruh daftar. --}}
+                                    @if ($s->owner)
+                                        <a href="{{ request()->fullUrlWithQuery(['owner_id' => $s->owner->id, 'page' => null]) }}"
+                                           class="fw-semibold d-block text-gray-900 text-hover-primary">
+                                            {{ $s->owner->name }}
+                                        </a>
+                                    @else
+                                        <span class="fw-semibold d-block">-</span>
+                                    @endif
                                     <span class="text-muted fs-9">{{ $s->owner->employee_no ?? '' }}</span>
                                 </td>
                                 <td class="fs-8">{{ $s->school->name ?? '-' }}</td>
