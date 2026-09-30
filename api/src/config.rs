@@ -38,6 +38,13 @@ pub struct Config {
     pub storage_public_base: String,
     pub max_upload_bytes: usize,
 
+    /// Batas permintaan per menit per pengguna untuk SELURUH endpoint.
+    ///
+    /// Longgar dengan sengaja: endpoint yang rawan sudah punya penahannya
+    /// sendiri yang jauh lebih ketat, dan lapisan menyeluruh yang terlalu
+    /// rapat akan menjerat tablet kios di gerbang pada jam masuk.
+    pub rate_limit_per_minute: u64,
+
     pub face: FaceConfig,
     pub notify: NotifyConfig,
 
@@ -169,6 +176,7 @@ impl Config {
             storage_root: env_or("STORAGE_ROOT", "./storage"),
             storage_public_base: env_or("STORAGE_PUBLIC_BASE", "/files"),
             max_upload_bytes: env_parse("MAX_UPLOAD_BYTES", 8 * 1024 * 1024),
+            rate_limit_per_minute: env_parse("RATE_LIMIT_PER_MINUTE", 300),
 
             face: FaceConfig {
                 embedding_dim: env_parse("FACE_EMBEDDING_DIM", 128),

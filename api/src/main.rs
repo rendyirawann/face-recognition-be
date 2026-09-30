@@ -30,6 +30,7 @@ mod routes;
 mod services;
 mod state;
 mod telemetry;
+mod throttle;
 mod util;
 mod workers;
 
@@ -134,6 +135,13 @@ async fn main() -> anyhow::Result<()> {
     let cors = build_cors(&cors_origins);
 
     let app = app
+        // Penahan laju menyeluruh, DI DALAM lapisan lain supaya request id
+        // dan log tetap terpasang pada permintaan yang ditolaknya —
+        // penolakan yang tidak muncul di log tidak dapat diselidiki.
+        .layer(axum::middleware::from_fn_with_state(
+            state.clone(),
+            throttle::layer,
+        ))
         .layer(
             ServiceBuilder::new()
                 // Request id dipasang paling luar agar semua log & respons
