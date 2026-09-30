@@ -165,6 +165,106 @@
                 </div>
             </div>
 
+            {{-- Akun aplikasi.
+
+                 Ditaruh DI SINI, bukan hanya di Layanan -> Akun Aplikasi.
+                 Alur sebelumnya menuntut operator keluar dari halaman ini,
+                 membuka menu lain, lalu MENCARI SISWA YANG SAMA yang sedang
+                 terbuka di layarnya — dan sekali lagi untuk orang tuanya.
+                 Tiga halaman dan tiga pencarian untuk satu siswa. --}}
+            <div class="card card-flush border border-gray-200 mb-5">
+                <div class="card-header pt-5">
+                    <h3 class="card-title fw-bold">Akun Aplikasi</h3>
+                </div>
+                <div class="card-body pt-3">
+
+                    {{-- Akun siswa --}}
+                    <span class="text-muted fs-8 text-uppercase d-block mb-2">Siswa</span>
+                    @if ($akunSiswa)
+                        <div class="border border-gray-200 rounded p-3 mb-4">
+                            <div class="d-flex align-items-start justify-content-between">
+                                <div>
+                                    <span class="fw-semibold fs-7 d-block">{{ $akunSiswa->name }}</span>
+                                    <span class="text-muted fs-9 font-monospace">
+                                        masuk dengan NISN {{ $akunSiswa->identity_number ?? $student->nisn }}
+                                    </span>
+                                </div>
+                                @if (! $akunSiswa->is_active)
+                                    <span class="badge badge-light-danger fs-9">nonaktif</span>
+                                @elseif ($akunSiswa->must_change_password)
+                                    <span class="badge badge-light-warning fs-9">belum ganti sandi</span>
+                                @else
+                                    <span class="badge badge-light-success fs-9">aktif</span>
+                                @endif
+                            </div>
+                            <div class="text-muted fs-9 mt-2">
+                                Login terakhir:
+                                {{ $akunSiswa->last_login
+                                    ? $akunSiswa->last_login->timezone(config('app.timezone'))->diffForHumans()
+                                    : 'belum pernah' }}
+                            </div>
+                            <a href="{{ route('app-accounts.show', $akunSiswa->id) }}"
+                               class="btn btn-sm btn-light py-1 px-3 fs-9 mt-2">Kelola akun</a>
+                        </div>
+                    @else
+                        <div class="alert alert-light-warning py-3 px-4 fs-8 mb-3">
+                            Siswa ini belum punya akun aplikasi, sehingga belum dapat
+                            melihat absensinya sendiri maupun membuat laporan.
+                        </div>
+                        @can('manage_app_account')
+                            <a class="btn btn-sm btn-light-primary mb-4"
+                               href="{{ route('app-accounts.create', [
+                                   'student_id' => $student->id,
+                                   'role' => 'siswa',
+                               ]) }}">Buatkan akun siswa</a>
+                        @endcan
+                    @endif
+
+                    {{-- Akun orang tua, satu per wali --}}
+                    <span class="text-muted fs-8 text-uppercase d-block mb-2">Orang tua</span>
+                    @forelse ($student->guardians as $g)
+                        @php $akun = $g->user_id ? ($akunWali[$g->user_id] ?? null) : null; @endphp
+                        <div class="border border-gray-200 rounded p-3 mb-2">
+                            <div class="d-flex align-items-start justify-content-between">
+                                <div>
+                                    <span class="fw-semibold fs-7 d-block">{{ $g->full_name }}</span>
+                                    <span class="text-muted fs-9">{{ ucfirst($g->relation) }}</span>
+                                </div>
+                                @if ($akun)
+                                    <span class="badge badge-light-success fs-9">punya akun</span>
+                                @else
+                                    <span class="badge badge-light fs-9">belum ada akun</span>
+                                @endif
+                            </div>
+
+                            @if ($akun)
+                                <div class="text-muted fs-9 mt-2 font-monospace">
+                                    masuk dengan NIK {{ $akun->identity_number ?? '—' }}
+                                </div>
+                                <a href="{{ route('app-accounts.show', $akun->id) }}"
+                                   class="btn btn-sm btn-light py-1 px-3 fs-9 mt-2">Kelola akun</a>
+                            @else
+                                @can('manage_app_account')
+                                    <a class="btn btn-sm btn-light-primary py-1 px-3 fs-9 mt-2"
+                                       href="{{ route('app-accounts.create', [
+                                           'student_id' => $student->id,
+                                           'role' => 'orang_tua',
+                                           'guardian_name' => $g->full_name,
+                                           'guardian_relation' => $g->relation,
+                                           'phone' => $g->whatsapp ?? $g->phone,
+                                       ]) }}">Buatkan akun untuk {{ str($g->full_name)->words(2, '') }}</a>
+                                @endcan
+                            @endif
+                        </div>
+                    @empty
+                        <div class="alert alert-light py-3 px-4 fs-8 mb-0">
+                            Tambahkan wali murid di kartu bawah lebih dulu, lalu akun
+                            orang tuanya dapat dibuatkan dari sini.
+                        </div>
+                    @endforelse
+                </div>
+            </div>
+
             {{-- Wali murid --}}
             <div class="card card-flush border border-gray-200">
                 <div class="card-header pt-5"><h3 class="card-title fw-bold">Wali Murid</h3></div>

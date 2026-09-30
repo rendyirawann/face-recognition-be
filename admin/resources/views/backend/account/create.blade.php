@@ -24,9 +24,13 @@
                         <div class="row g-4">
                             <div class="col-md-6">
                                 <label class="form-label required">Peran</label>
+                                {{-- `peranAwal` datang dari halaman detail siswa. `old()`
+                                     tetap menang supaya isian yang gagal tervalidasi
+                                     tidak tertimpa kembali ke nilai awal. --}}
+                                @php $peranTerpilih = old('role', $peranAwal ?? null); @endphp
                                 <select name="role" id="role" class="form-select form-select-sm" required>
                                     @foreach ($roles as $key => $label)
-                                        <option value="{{ $key }}" {{ old('role') === $key ? 'selected' : '' }}>
+                                        <option value="{{ $key }}" @selected($peranTerpilih === $key)>
                                             {{ $label }}
                                         </option>
                                     @endforeach
@@ -48,7 +52,7 @@
                             <div class="col-md-6">
                                 <label class="form-label required">Nama Lengkap</label>
                                 <input type="text" name="name" class="form-control form-control-sm"
-                                       value="{{ old('name') }}" required minlength="3" maxlength="150">
+                                       value="{{ old('name', $namaAwal ?? '') }}" required minlength="3" maxlength="150">
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label required">Email</label>
@@ -67,7 +71,7 @@
                             <div class="col-md-6">
                                 <label class="form-label">Nomor HP</label>
                                 <input type="text" name="phone" class="form-control form-control-sm"
-                                       value="{{ old('phone') }}" maxlength="15">
+                                       value="{{ old('phone', $teleponAwal ?? '') }}" maxlength="15">
                             </div>
                         </div>
                     </div>
@@ -105,7 +109,19 @@
                                 <select id="pilih-siswa" name="student_ids[]" multiple
                                         class="form-select form-select-sm"
                                         data-url="{{ route('app-accounts.students') }}"
-                                        data-placeholder="Ketik nama atau NISN (minimal 3 huruf)"></select>
+                                        data-placeholder="Ketik nama atau NISN (minimal 3 huruf)">
+                                    {{-- Siswa yang dibawa dari halaman detailnya sudah
+                                         terpilih. Option-nya ditulis di sini, bukan
+                                         diambil ulang lewat pencarian, supaya terpilih
+                                         sejak halaman pertama kali tampil. --}}
+                                    @if (! empty($siswaAwal))
+                                        <option value="{{ $siswaAwal->id }}" selected>
+                                            {{ $siswaAwal->full_name }}
+                                            @if ($siswaAwal->nisn) &middot; {{ $siswaAwal->nisn }} @endif
+                                            @if ($siswaAwal->classroom) &middot; {{ $siswaAwal->classroom->name }} @endif
+                                        </option>
+                                    @endif
+                                </select>
                                 <div class="form-text fs-9">Cari berdasarkan nama atau NISN.</div>
                             </div>
 
@@ -115,7 +131,7 @@
                             <label class="form-label required">Hubungan dengan siswa</label>
                             <select name="guardian_relation" class="form-select form-select-sm w-auto">
                                 @foreach ($relations as $key => $label)
-                                    <option value="{{ $key }}" {{ old('guardian_relation') === $key ? 'selected' : '' }}>
+                                    <option value="{{ $key }}" {{ old('guardian_relation', $relasiAwal ?? '') === $key ? 'selected' : '' }}>
                                         {{ $label }}
                                     </option>
                                 @endforeach

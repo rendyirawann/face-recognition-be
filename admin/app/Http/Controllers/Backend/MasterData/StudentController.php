@@ -7,6 +7,7 @@ use App\Models\Attendance;
 use App\Models\Classroom;
 use App\Models\Student;
 use App\Models\StudentGuardian;
+use App\Models\User;
 use App\Support\Tenant;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -162,6 +163,29 @@ class StudentController extends Controller implements HasMiddleware
             'recap' => $this->recap($student, $from, $to),
             'from' => $from,
             'to' => $to,
+
+            // Akun aplikasi yang sudah ada untuk siswa ini dan wali-walinya.
+            //
+            // Dimuat DI SINI supaya halaman detail siswa dapat menjadi satu
+            // tempat penyelesaian: sebelumnya, membuatkan akun berarti keluar
+            // ke Layanan -> Akun Aplikasi lalu MENCARI SISWA YANG SAMA lagi,
+            // dan sekali lagi untuk orang tuanya. Tiga halaman dan tiga
+            // pencarian untuk satu siswa yang sedang dibuka di layar.
+            'akunSiswa' => User::query()
+                ->whereNull('deleted_at')
+                ->where('student_id', $student->id)
+                ->first(['id', 'name', 'username', 'identity_number', 'is_active',
+                         'must_change_password', 'last_login']),
+
+            // Kunci = id wali, nilai = akunnya. Wali tanpa akun tidak
+            // muncul di sini, dan itu justru yang dipakai view untuk
+            // menawarkan tombol pembuatan.
+            'akunWali' => User::query()
+                ->whereNull('deleted_at')
+                ->whereIn('id', $student->guardians->pluck('user_id')->filter())
+                ->get(['id', 'name', 'username', 'identity_number', 'is_active',
+                       'must_change_password', 'last_login'])
+                ->keyBy('id'),
         ]);
     }
 

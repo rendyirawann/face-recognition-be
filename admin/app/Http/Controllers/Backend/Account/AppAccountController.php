@@ -103,12 +103,44 @@ class AppAccountController extends Controller implements HasMiddleware
         ]);
     }
 
-    public function create(): View
+    /**
+     * Formulir akun baru, dapat diisi sebagian lebih dulu.
+     *
+     * Halaman detail siswa menautkan ke sini beserta siswanya. Tanpa itu
+     * operator yang baru saja membuka seorang siswa harus MENCARI SISWA
+     * YANG SAMA lagi di halaman ini — dan sekali lagi untuk orang tuanya.
+     *
+     * Siswa yang diisi lebih dulu tetap divalidasi `store()` seperti
+     * biasa: parameter URL datang dari peramban dan tidak lebih tepercaya
+     * daripada isian formulir mana pun.
+     */
+    public function create(Request $request): View
     {
+        $awal = null;
+        if ($id = $request->query('student_id')) {
+            $awal = Student::withoutTenantScope()
+                ->with('classroom:id,name')
+                ->find($id);
+
+            // Siswa di luar cakupan diperlakukan seperti tidak ada:
+            // formulirnya tampil kosong, bukan menolak dengan galat yang
+            // justru memberi tahu bahwa siswa itu memang ada.
+            if ($awal && Tenant::schoolIds() !== null
+                && ! in_array($awal->school_id, Tenant::schoolIds(), true)) {
+                $awal = null;
+            }
+        }
+
         return view('backend.account.create', [
             'roles' => $this->assignableRoles(),
             'schools' => Tenant::selectableSchools(),
             'relations' => self::RELATIONS,
+
+            'siswaAwal' => $awal,
+            'peranAwal' => $request->query('role'),
+            'namaAwal' => $request->query('guardian_name'),
+            'relasiAwal' => $request->query('guardian_relation'),
+            'teleponAwal' => $request->query('phone'),
         ]);
     }
 
