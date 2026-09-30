@@ -29,6 +29,7 @@ pub mod kiosk;
 pub mod me;
 pub mod notifications;
 pub mod panic;
+pub mod pkl;
 pub mod schools;
 pub mod students;
 pub mod users;
@@ -51,6 +52,7 @@ pub fn v1() -> Router<AppState> {
         .merge(notifications::router())
         .merge(dashboard::router())
         .merge(users::router())
+        .merge(pkl::router())
         // --- Jargon GO (Super Apps) ---
         .merge(me::router())
         .merge(panic::router())

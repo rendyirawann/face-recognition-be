@@ -10,6 +10,7 @@ pub mod document;
 pub mod face;
 pub mod notification;
 pub mod panic;
+pub mod pkl;
 pub mod school;
 pub mod student;
 pub mod user;

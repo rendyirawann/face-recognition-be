@@ -39,6 +39,15 @@ impl Storage {
         format!("faces/{school_id}/{student_id}/{}.{ext}", Uuid::new_v4())
     }
 
+    /// Foto bukti absensi PKL.
+    ///
+    /// Disusun per sekolah lalu per TANGGAL, bukan per siswa: penghapusan
+    /// berkala nanti membuang satu periode sekaligus, dan itu jauh lebih
+    /// murah bila berkas satu tanggal berada dalam satu direktori.
+    pub fn pkl_key(school_id: Uuid, tanggal: &str, student_id: Uuid) -> String {
+        format!("pkl/{school_id}/{tanggal}/{student_id}-{}.jpg", Uuid::new_v4())
+    }
+
     pub fn import_key(school_id: Option<Uuid>, original: &str) -> String {
         let scope = school_id.map(|s| s.to_string()).unwrap_or_else(|| "provinsi".into());
         let safe = sanitize_filename(original);
