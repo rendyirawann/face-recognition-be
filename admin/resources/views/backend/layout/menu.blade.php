@@ -148,6 +148,18 @@
             </div>
         @endif
 
+        {{-- -------------------------------------------------------- PKL --}}
+        @if ($can('view_pkl'))
+            <div class="menu-item me-0 me-lg-1 {{ $is('admin/pkl*') ? 'here show menu-here-bg' : '' }}">
+                <a class="menu-link py-3" href="{{ route('pkl.index') }}">
+                    <span class="menu-icon">
+                        <i class="ki-duotone ki-geolocation fs-4"><span class="path1"></span><span class="path2"></span></i>
+                    </span>
+                    <span class="menu-title">PKL</span>
+                </a>
+            </div>
+        @endif
+
         {{-- ---------------------------------------------------- CBT/TKA --}}
         @if ($can('view_cbt'))
             <div class="menu-item me-0 me-lg-1 {{ $is('admin/cbt*') ? 'here show menu-here-bg' : '' }}">

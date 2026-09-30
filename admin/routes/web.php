@@ -31,6 +31,7 @@ use App\Http\Controllers\Backend\Notification\NotificationController;
 // Import Controller JARGON GO (Super Apps)
 use App\Http\Controllers\Backend\Cbt\CbtController;
 use App\Http\Controllers\Backend\Panic\PanicController;
+use App\Http\Controllers\Backend\Pkl\PklController;
 use App\Http\Controllers\Backend\Document\DocumentController;
 use App\Http\Controllers\Backend\Account\AppAccountController;
 use App\Http\Controllers\Backend\FileProxyController;
@@ -206,6 +207,23 @@ Route::middleware(['auth', 'forbid-banned-user'])->group(function () {
     Route::post('/admin/notifications/policy', [NotificationController::class, 'updatePolicy'])->name('notifications.policy');
     Route::post('/admin/notifications/send', [NotificationController::class, 'send'])->name('notifications.send');
     Route::post('/admin/notifications/{outbox}/retry', [NotificationController::class, 'retry'])->name('notifications.retry')->whereUuid('outbox');
+
+    // ====================================================
+    // JARGON GO — Praktik Kerja Lapangan
+    //
+    // Ditulis langsung lewat Eloquent, sama seperti Kelas dan Siswa. API
+    // Rust hanya memiliki absensinya, karena aturan absen itulah yang juga
+    // dipakai aplikasi ponsel. Keutuhan datanya dijaga basis data: CHECK
+    // untuk batas radius, EXCLUDE untuk masa penempatan yang bertumpuk.
+    // ====================================================
+    Route::get('/admin/pkl', [PklController::class, 'index'])->name('pkl.index');
+    Route::post('/admin/pkl/places', [PklController::class, 'storePlace'])->name('pkl.places.store');
+    Route::put('/admin/pkl/places/{id}', [PklController::class, 'updatePlace'])->name('pkl.places.update')->whereUuid('id');
+    Route::delete('/admin/pkl/places/{id}', [PklController::class, 'destroyPlace'])->name('pkl.places.destroy')->whereUuid('id');
+    Route::post('/admin/pkl/placements', [PklController::class, 'storePlacement'])->name('pkl.placements.store');
+    Route::put('/admin/pkl/placements/{id}', [PklController::class, 'updatePlacement'])->name('pkl.placements.update')->whereUuid('id');
+    Route::post('/admin/pkl/placements/{id}/end', [PklController::class, 'endPlacement'])->name('pkl.placements.end')->whereUuid('id');
+    Route::get('/admin/pkl/placements/{id}', [PklController::class, 'show'])->name('pkl.placements.show')->whereUuid('id');
 
     // ====================================================
     // JARGON GO — CBT/TKA

@@ -169,9 +169,18 @@
             @endif
 
             <!--begin::Section: Akademik-->
-            @if ($can('view_cbt'))
+            @if ($can('view_cbt') || $can('view_pkl'))
                 <div class="menu-item pt-5">
                     <div class="menu-content"><span class="menu-heading fw-bold text-uppercase fs-7">Akademik</span></div>
+                </div>
+
+                <div class="menu-item">
+                    <a class="menu-link {{ $is('admin/pkl*') ? 'active' : '' }}" href="{{ route('pkl.index') }}">
+                        <span class="menu-icon">
+                            <i class="ki-duotone ki-geolocation fs-3"><span class="path1"></span><span class="path2"></span></i>
+                        </span>
+                        <span class="menu-title">PKL</span>
+                    </a>
                 </div>
 
                 <div class="menu-item">
