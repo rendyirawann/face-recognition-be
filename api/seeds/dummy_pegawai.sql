@@ -75,7 +75,17 @@ SELECT 'Drs. ' || (ARRAY['Sutrisno','Marolop','Hasanuddin','Parlindungan',
        '$2y$12$K1cEBcgdz7fC6ijnsKG4AuVOdCmHtOuf.o4F1TEgyqzU7gnjxU6jO',
        g.id,
        -- NIK contoh berawalan 9 agar mudah dibedakan dari NIK asli.
-       '9' || lpad((g.urut * 7)::text, 15, '0'),
+       -- Awalan '91' KHUSUS kepala sekolah.
+       --
+       -- Versi sebelumnya memakai '9' untuk semua peran dengan rumus
+       -- berbeda, dan rumusnya bertabrakan: urut*7 pada sekolah ke-43
+       -- menghasilkan 301, sama persis dengan urut*100+n pada sekolah
+       -- ke-3 guru ke-1. Seeder gagal di tengah jalan dengan
+       -- "duplicate key value violates users_identity_unique".
+       --
+       -- Dua digit awal yang berbeda per peran membuat tabrakan itu
+       -- mustahil, berapa pun jumlah sekolahnya.
+       '91' || lpad(g.urut::text, 14, '0'),
        'nik',
        '19' || lpad((60 + (g.urut % 20))::text, 2, '0') ||
        lpad((1 + (g.urut % 12))::text, 2, '0') ||
@@ -112,7 +122,7 @@ SELECT (ARRAY['Ahmad','Siti','Budi','Rina','Dedi','Maya','Fajar','Lestari',
          || '@contoh.disdik.sumutprov.go.id',
        '$2y$12$K1cEBcgdz7fC6ijnsKG4AuVOdCmHtOuf.o4F1TEgyqzU7gnjxU6jO',
        g.id,
-       '9' || lpad((g.urut * 100 + n)::text, 15, '0'),
+       '92' || lpad((g.urut * 10 + n)::text, 14, '0'),
        'nik',
        '19' || lpad((70 + ((g.urut + n) % 15))::text, 2, '0') ||
        lpad((1 + (n % 12))::text, 2, '0') ||
@@ -166,7 +176,7 @@ SELECT (ARRAY['Herlina','Suryadi','Nurhayati','Iwan','Ratna','Bambang',
        'tu9' || lpad(g.urut::text, 6, '0') || '@contoh.disdik.sumutprov.go.id',
        '$2y$12$K1cEBcgdz7fC6ijnsKG4AuVOdCmHtOuf.o4F1TEgyqzU7gnjxU6jO',
        g.id,
-       '9' || lpad((g.urut * 9 + 3)::text, 15, '0'),
+       '93' || lpad(g.urut::text, 14, '0'),
        'nik',
        '19' || lpad((75 + (g.urut % 12))::text, 2, '0') || '0101 2 001',
        'Staf Tata Usaha',
@@ -226,7 +236,7 @@ SELECT g.full_name,
        -- sekolah anaknya lewat student_guardians, dan anak-anaknya bisa
        -- berada di sekolah berbeda.
        NULL,
-       '9' || lpad(substring(st.nisn FROM 2), 15, '0'),
+       '94' || lpad(substring(st.nisn FROM 2), 14, '0'),
        'nik',
        g.phone,
        TRUE, TRUE, NOW(), NOW()
