@@ -13,8 +13,6 @@
 //!
 //!   Jargon GO (aplikasi mobile):
 //!   /v1/me/*                               -> data milik pengguna sendiri
-//!   /v1/panic/*                            -> Panic Button (pengaduan anonim)
-//!   /v1/documents/*                        -> Pemberkasan kepegawaian
 //! ```
 
 pub mod attendance;
@@ -22,14 +20,11 @@ pub mod auth;
 pub mod classrooms;
 pub mod dashboard;
 pub mod devices;
-pub mod documents;
 pub mod files;
 pub mod health;
 pub mod kiosk;
 pub mod me;
 pub mod notifications;
-pub mod panic;
-pub mod pkl;
 pub mod schools;
 pub mod students;
 pub mod users;
@@ -52,11 +47,8 @@ pub fn v1() -> Router<AppState> {
         .merge(notifications::router())
         .merge(dashboard::router())
         .merge(users::router())
-        .merge(pkl::router())
         // --- Jargon GO (Super Apps) ---
         .merge(me::router())
-        .merge(panic::router())
-        .merge(documents::router())
 }
 
 /// Endpoint di luar prefix `/v1`.

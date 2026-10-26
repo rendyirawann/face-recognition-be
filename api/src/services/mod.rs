@@ -2,7 +2,6 @@
 //! mengurus parsing/otorisasi, sedangkan aturan domain tinggal di sini agar
 //! bisa diuji tanpa server dan dipakai ulang oleh worker.
 
-pub mod anonymity;
 pub mod audit;
 pub mod enrollment;
 pub mod notify;

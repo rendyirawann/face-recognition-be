@@ -42,72 +42,9 @@ pub struct HomeSummary {
     pub students: Vec<StudentTodayCard>,
     /// Ringkasan sekolah — hanya untuk guru/staff/kepala sekolah.
     pub school: Option<SchoolTodayCard>,
-    /// Jumlah pengaduan milik sendiri yang statusnya berubah dan belum dibuka.
-    pub panic_updates: i64,
-    /// Pengajuan berkas yang butuh tindakan pengguna.
-    pub document_actions: i64,
     /// Menu yang boleh ditampilkan, sesuai izin akun.
     pub available_menus: Vec<String>,
-
-    /// Boleh MENGUBAH status laporan, bukan sekadar melihatnya.
-    ///
-    /// Dikirim sebagai penanda siap-pakai, bukan daftar izin mentah:
-    /// aplikasi tidak perlu tahu bahwa penanganan laporan tersebar di
-    /// empat izin berbeda menurut jenjangnya, dan menyalin aturan itu ke
-    /// sisi klien berarti dua tempat yang harus diubah bersamaan.
-    pub can_handle_panic: bool,
-
-    /// Boleh memverifikasi pengajuan berkas.
-    pub can_verify_document: bool,
 }
-
-/// Peran yang boleh membuka menu pengenalan wajah di aplikasi.
-///
-/// Menu di aplikasi dibatasi PERAN, bukan hanya izin.
-///
-/// Izin yang sama dipakai dashboard web: `view_panic_feed` dan
-/// `view_document_submission` harus tetap dimiliki peran yang menangani
-/// perkaranya di web. Menyaring menu mobile lewat izin itu saja akan ikut
-/// mencabut akses web mereka.
-///
-/// Daftar di bawah memuat peran yang benar-benar PUNYA PEKERJAAN pada menu
-/// itu, bukan sekadar boleh melihatnya.
-
-/// Laporan (Panic Button): yang membuat laporan, dan yang menanganinya di
-/// tiap jenjang.
-///
-/// TIDAK memuat `orang_tua` dan `guru` — izin laporan keduanya sudah dicabut
-/// migrasi 0018, dan orang tua memang hanya memantau absensi anaknya.
-///
-/// TIDAK memuat `staff_tu`: ia memegang `view_panic_feed` warisan migrasi
-/// 0011 tetapi tidak satu pun izin `handle_panic_*`, jadi tidak ada yang
-/// bisa dikerjakannya di sana. Laporan perundungan dan pungli menyangkut
-/// orang-orang di sekolah yang sama, dan menaruh satu peran lagi di
-/// hadapannya tanpa pekerjaan yang jelas hanya memperluas siapa yang
-/// membacanya.
-const PANIC_MENU_ROLES: [&str; 7] = [
-    "superadmin",
-    "admin_dinas",
-    "capdis",
-    "sekolah",
-    "admin",
-    "kepala_sekolah",
-    "siswa",
-];
-
-/// Pemberkasan: yang mengajukan berkas, dan yang memverifikasinya.
-const PEMBERKASAN_MENU_ROLES: [&str; 5] = [
-    "superadmin",
-    "admin_dinas",
-    "kepala_sekolah",
-    "staff_tu",
-    "guru",
-];
-
-fn has_any_role(user: &AuthUser, roles: &[&str]) -> bool {
-    user.roles.iter().any(|r| roles.contains(&r.as_str()))
-}
-
 #[derive(Debug, Serialize, ToSchema)]
 pub struct StudentTodayCard {
     pub student_id: Uuid,
@@ -161,35 +98,6 @@ pub async fn home(
         None
     };
 
-    let (panic_updates,): (i64,) = sqlx::query_as(
-        r#"
-        SELECT COUNT(*)::bigint FROM panic_reports
-        WHERE author_user_id = $1
-          AND created_at > NOW() - INTERVAL '180 days'
-          AND status <> 'baru'
-          AND updated_at > NOW() - INTERVAL '7 days'
-        "#,
-    )
-    .bind(user.id)
-    .fetch_one(&state.db)
-    .await?;
-
-    // "Butuh tindakan" = milik sendiri dan menunggu perbaikan, ATAU (bagi
-    // verifikator) menunggu diperiksa.
-    let (document_actions,): (i64,) = sqlx::query_as(
-        r#"
-        SELECT COUNT(*)::bigint FROM document_submissions s
-        WHERE (s.user_id = $1 AND s.status IN ('draft', 'revisi'))
-           OR ($2 AND s.status = 'diajukan'
-                 AND ($3::uuid IS NULL OR s.school_id = $3))
-        "#,
-    )
-    .bind(user.id)
-    .bind(user.has_permission("verify_document_submission"))
-    .bind(user.school_id)
-    .fetch_one(&state.db)
-    .await?;
-
     let mut available_menus = Vec::new();
     if user.has_permission("view_own_attendance")
         || user.has_permission("view_children_attendance")
@@ -197,45 +105,6 @@ pub async fn home(
     {
         available_menus.push("absensi".to_string());
     }
-    // Dua bentuk izin, bukan satu. Peran lama (`siswa`, `admin`,
-    // `kepala_sekolah`) memakai `view_panic_feed`; peran berjenjang yang
-    // ditambahkan migrasi 0017 (`sekolah`, `capdis`) memakai
-    // `view_panic_scope`. Memeriksa salah satunya saja membuat separuh
-    // peran penangan kehilangan menunya tanpa ada yang menyadarinya.
-    if (user.has_permission("view_panic_feed") || user.has_permission("view_panic_scope"))
-        && has_any_role(&user, &PANIC_MENU_ROLES)
-    {
-        available_menus.push("panic_button".to_string());
-    }
-    if has_any_role(&user, &PEMBERKASAN_MENU_ROLES) {
-        available_menus.push("pemberkasan".to_string());
-    }
-
-    // Menu PKL hanya untuk siswa yang HARI INI punya penempatan aktif.
-    //
-    // Ditanyakan ke basis data, bukan disimpulkan dari peran, karena PKL
-    // bukan sifat siswanya melainkan keadaan yang berlaku pada rentang
-    // tanggal tertentu. Menunya hilang sendiri begitu masa PKL berakhir,
-    // tanpa ada yang harus mematikannya.
-    //
-    // Kueri ini hanya dijalankan untuk akun siswa: 400.000 siswa non-PKL
-    // tidak perlu membayar satu EXISTS pada setiap pembukaan beranda, dan
-    // peran lain tidak pernah punya penempatan.
-    if user.roles.iter().any(|r| r == "siswa") {
-        if let Some(sid) = user.students.first() {
-            let sedang_pkl: bool = sqlx::query_scalar(
-                "SELECT EXISTS (SELECT 1 FROM pkl_penempatan_berlaku WHERE student_id = $1)",
-            )
-            .bind(sid)
-            .fetch_one(&state.db)
-            .await?;
-
-            if sedang_pkl {
-                available_menus.push("pkl".to_string());
-            }
-        }
-    }
-
     // Menu pengenalan wajah mengikuti `operate_face_kiosk`.
     //
     // Sebelumnya daftar peran tetap berisi superadmin dan admin_dinas saja,
@@ -257,21 +126,12 @@ pub async fn home(
         available_menus.push("face_recognition".to_string());
     }
 
-    let can_handle_panic = user.has_permission("handle_panic_report")
-        || user.has_permission("handle_panic_sekolah")
-        || user.has_permission("handle_panic_capdis")
-        || user.has_permission("handle_panic_disdik");
-
     Ok(ApiResponse::new(HomeSummary {
         greeting: greeting_for(&user.name),
         role_label: user.role_label().to_string(),
         students,
         school,
-        panic_updates,
-        document_actions,
         available_menus,
-        can_handle_panic,
-        can_verify_document: user.has_permission("verify_document_submission"),
     }))
 }
 

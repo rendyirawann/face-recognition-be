@@ -389,9 +389,19 @@ mod tests {
         ]);
 
         let q = vector::normalized(&[0.0, 1.0, 0.0]);
-        // Terhadap `a` seharusnya ~0, bukan ~1.
         let sim = own_similarity(&slice, a, &q);
-        assert!(sim.abs() < 1e-5, "sim = {sim}");
+
+        // Yang diuji: sampel `b` cocok SEMPURNA dengan query, jadi bila ia
+        // ikut terhitung nilainya menjadi 1,0. Yang benar adalah skor
+        // terhadap sampel `a` sendiri.
+        //
+        // Angkanya bukan 0 meski kedua vektor tegak lurus: skornya berbasis
+        // jarak Euclid, bukan cosine, dan `1 - sqrt(2)/2` = 0,293. Tes ini
+        // sebelumnya menuntut ~0 — warisan masa skornya masih cosine — dan
+        // karena itu selalu gagal sejak euclid_score dipakai.
+        let diri = vector::euclid_score(&q, &[1.0, 0.0, 0.0]);
+        assert!((sim - diri).abs() < 1e-5, "sim = {sim}, diharapkan {diri}");
+        assert!(sim < 0.5, "sampel siswa lain ikut terhitung: sim = {sim}");
     }
 
     #[test]

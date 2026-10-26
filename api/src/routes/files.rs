@@ -101,43 +101,6 @@ pub async fn authorize(state: &AppState, user: &AuthUser, key: &str) -> ApiResul
             .await?;
             row.map(|_| ()).ok_or_else(|| ApiError::NotFound("berkas".into()))
         }
-        "documents" => {
-            user.require("view_document_submission")?;
-
-            let row: Option<(Uuid,)> = sqlx::query_as(
-                "SELECT submission_id FROM document_files WHERE file_key = $1",
-            )
-            .bind(key)
-            .fetch_optional(&state.db)
-            .await?;
-
-            let (submission_id,) = row.ok_or_else(|| ApiError::NotFound("berkas".into()))?;
-
-            // Aturan yang sama dengan membuka pengajuannya: pemilik selalu
-            // boleh, selain itu butuh izin verifikasi dan cakupan sekolah.
-            // Berkasnya memuat NIK, nomor rekening, dan ijazah.
-            super::documents::fetch_submission(state, user, submission_id)
-                .await
-                .map(|_| ())
-                .map_err(|_| ApiError::NotFound("berkas".into()))
-        }
-        "panic" => {
-            user.require("view_panic_feed")?;
-
-            let row: Option<(Uuid,)> =
-                sqlx::query_as("SELECT report_id FROM panic_report_media WHERE file_key = $1")
-                    .bind(key)
-                    .fetch_optional(&state.db)
-                    .await?;
-
-            let (report_id,) = row.ok_or_else(|| ApiError::NotFound("berkas".into()))?;
-
-            // Lampiran mengikuti visibilitas laporannya, memakai aturan yang
-            // sama persis — bukan salinannya.
-            super::panic::authorize_media(state, user, report_id)
-                .await
-                .map_err(|_| ApiError::NotFound("berkas".into()))
-        }
         "exports" | "imports" => {
             user.require_any(&["export_report", "import_student", "view_report"])?;
             if scope == "provinsi" {

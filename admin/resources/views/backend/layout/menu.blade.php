@@ -148,34 +148,10 @@
             </div>
         @endif
 
-        {{-- -------------------------------------------------------- PKL --}}
-        @if ($can('view_pkl'))
-            <div class="menu-item me-0 me-lg-1 {{ $is('admin/pkl*') ? 'here show menu-here-bg' : '' }}">
-                <a class="menu-link py-3" href="{{ route('pkl.index') }}">
-                    <span class="menu-icon">
-                        <i class="ki-duotone ki-geolocation fs-4"><span class="path1"></span><span class="path2"></span></i>
-                    </span>
-                    <span class="menu-title">PKL</span>
-                </a>
-            </div>
-        @endif
-
-        {{-- ---------------------------------------------------- CBT/TKA --}}
-        @if ($can('view_cbt'))
-            <div class="menu-item me-0 me-lg-1 {{ $is('admin/cbt*') ? 'here show menu-here-bg' : '' }}">
-                <a class="menu-link py-3" href="{{ route('cbt.index') }}">
-                    <span class="menu-icon">
-                        <i class="ki-duotone ki-note-2 fs-4"><span class="path1"></span><span class="path2"></span><span class="path3"></span><span class="path4"></span></i>
-                    </span>
-                    <span class="menu-title">CBT/TKA</span>
-                </a>
-            </div>
-        @endif
-
         {{-- ---------------------------------------------------- Layanan --}}
-        @if ($can('manage_app_account') || $can('view_panic_feed') || $can('view_document_submission'))
+        @if ($can('manage_app_account'))
             <div data-kt-menu-trigger="{default: 'click', lg: 'hover'}" data-kt-menu-placement="bottom-start"
-                class="menu-item menu-lg-down-accordion me-0 me-lg-1 {{ $aktif(['admin/app-accounts*', 'admin/panic*', 'admin/documents*']) ? 'here show menu-here-bg' : '' }}">
+                class="menu-item menu-lg-down-accordion me-0 me-lg-1 {{ $aktif(['admin/app-accounts*']) ? 'here show menu-here-bg' : '' }}">
                 <span class="menu-link py-3">
                     <span class="menu-icon">
                         <i class="ki-duotone ki-abstract-26 fs-4"><span class="path1"></span><span class="path2"></span></i>
@@ -205,43 +181,6 @@
                         </div>
                     @endif
 
-                    @if ($can('view_panic_feed'))
-                        <div class="separator my-2"></div>
-                        <div class="menu-item">
-                            <div class="menu-content jg-navgroup">Panic Button</div>
-                        </div>
-                        <div class="menu-item">
-                            <a class="menu-link {{ request()->routeIs('panic.index') ? 'active' : '' }}" href="{{ route('panic.index') }}">
-                                <span class="menu-title">Daftar Pengaduan</span>
-                            </a>
-                        </div>
-                        @if ($can('unmask_panic_report'))
-                            <div class="menu-item">
-                                <a class="menu-link {{ request()->routeIs('panic.unmask-logs') ? 'active' : '' }}" href="{{ route('panic.unmask-logs') }}">
-                                    <span class="menu-title">Audit Buka Identitas</span>
-                                </a>
-                            </div>
-                        @endif
-                    @endif
-
-                    @if ($can('view_document_submission'))
-                        <div class="separator my-2"></div>
-                        <div class="menu-item">
-                            <div class="menu-content jg-navgroup">Pemberkasan</div>
-                        </div>
-                        <div class="menu-item">
-                            <a class="menu-link {{ request()->routeIs('documents.index') ? 'active' : '' }}" href="{{ route('documents.index') }}">
-                                <span class="menu-title">Pengajuan Berkas</span>
-                            </a>
-                        </div>
-                        @if ($can('manage_document_type'))
-                            <div class="menu-item">
-                                <a class="menu-link {{ request()->routeIs('documents.types') ? 'active' : '' }}" href="{{ route('documents.types') }}">
-                                    <span class="menu-title">Jenis Dokumen</span>
-                                </a>
-                            </div>
-                        @endif
-                    @endif
                 </div>
             </div>
         @endif
