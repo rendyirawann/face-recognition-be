@@ -12,7 +12,7 @@ Keduanya **tidak ada di repo** dan harus dipasok Dinas.
 
 Aplikasi tablet memakai model **berbeda** dengan halaman ini:
 
-| | Dashboard (halaman ini) | Tablet (jargon-fe) |
+| | Dashboard (halaman ini) | Tablet (face-recognition-fe) |
 |---|---|---|
 | Format | TensorFlow.js GraphModel | TensorFlow Lite |
 | Berkas | `models/facenet/model.json` | `assets/models/mobilefacenet.tflite` |
@@ -29,7 +29,7 @@ berlabel `mobilefacenet-v1` — **semua penjaga lolos** dan embedding dari dua
 ruang vektor berbeda tercampur di satu tabel.
 
 Akibatnya bukan "akurasi menurun", melainkan **identifikasi acak**: siswa A
-dikenali sebagai siswa B. Lihat `jargon-fe/assets/models/README.md`.
+dikenali sebagai siswa B. Lihat `face-recognition-fe/assets/models/README.md`.
 
 ## Aturan yang harus dipegang
 
@@ -38,7 +38,7 @@ dikenali sebagai siswa B. Lihat `jargon-fe/assets/models/README.md`.
    keduanya wajib merupakan **konversi dari bobot yang sama**, dengan ukuran
    input dan praproses yang **disamakan lebih dulu di kode**.
 3. Bila tidak bisa dijamin: **jangan pakai pendaftaran dari dashboard.** Pakai
-   tablet bermode `enroll` (disebut `jargon-be/docs/ARCHITECTURE.md:670-672`
+   tablet bermode `enroll` (disebut `face-recognition-be/docs/ARCHITECTURE.md:670-672`
    sebagai alternatif yang "sudah lengkap"), sehingga hanya ada satu model.
 4. Naikkan `FACE_MODEL_VERSION` di `api/.env` setiap kali model berganti, dan
    hitung ulang embedding dari gambar pendaftaran yang tersimpan.

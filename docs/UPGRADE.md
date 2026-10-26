@@ -33,7 +33,7 @@ bukan pekerjaan perintah.
 ## Langkah 1 — periksa apa yang terdampak
 
 ```bash
-cd /path/ke/jargon-be
+cd /path/ke/face-recognition-be
 docker compose exec -T postgres psql -U absensi -d absensi -c \
   "SELECT count(*) AS wajah_terdaftar FROM face_embeddings"
 ```
@@ -145,7 +145,7 @@ docker compose -f docker-compose.prod.yml up -d
 ```
 
 ```bash
-# Atau membangun dari sumber (butuh ../jargon-fe berdampingan)
+# Atau membangun dari sumber (butuh ../face-recognition-fe berdampingan)
 docker compose build
 docker compose run --rm --entrypoint /usr/local/bin/jargon-api api migrate
 docker compose up -d
@@ -254,7 +254,7 @@ dan 4 hanya diperlukan bila catatan rilis menyebut perubahan skema atau
 kunci `.env` baru:
 
 ```bash
-cd /path/ke/jargon-be
+cd /path/ke/face-recognition-be
 git pull origin main
 docker compose -f docker-compose.prod.yml pull
 docker compose -f docker-compose.prod.yml run --rm \

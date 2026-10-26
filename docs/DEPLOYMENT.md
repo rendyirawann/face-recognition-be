@@ -18,7 +18,7 @@
 ## 2. Urutan pemasangan yang benar
 
 > **Penting:** skema database dimiliki oleh migrasi **sqlx** di
-> `jargon-be/api/migrations`, bukan oleh migrasi Laravel. Migrasi Laravel
+> `face-recognition-be/api/migrations`, bukan oleh migrasi Laravel. Migrasi Laravel
 > sudah ditandai selesai oleh `0010_seed.sql`, sehingga
 > `php artisan migrate` menjadi no-op yang aman. **Jangan** menjalankannya
 > sebagai bagian dari alur pemasangan.
@@ -36,7 +36,7 @@ Bila memakai Docker, ekstensi sudah terpasang oleh
 ### 2.2 API (Rust)
 
 ```bash
-cd jargon-be/api
+cd face-recognition-be/api
 cp .env.example .env
 
 # Isi dua nilai WAJIB:
@@ -59,7 +59,7 @@ open  http://localhost:8080/docs         # Swagger UI
 ### 2.3 Dashboard (Laravel)
 
 ```bash
-cd jargon-be/admin
+cd face-recognition-be/admin
 cp .env.example .env
 composer install
 php artisan key:generate
@@ -110,7 +110,7 @@ Password : Superadmin#2026
 ### 2.6 Aplikasi tablet (Flutter)
 
 ```bash
-cd jargon-fe
+cd face-recognition-fe
 
 # Salin model TFLite ke assets/models/mobilefacenet.tflite
 # (lihat assets/models/README.md untuk persyaratannya)
@@ -133,9 +133,9 @@ Jauh lebih singkat daripada §2.1–2.6, dan inilah cara yang dianjurkan untuk
 mencoba maupun mendemokan sistem.
 
 ```bash
-git clone https://github.com/rendyirawann/jargon-be.git
-git clone https://github.com/rendyirawann/jargon-fe.git   # harus berdampingan
-cd jargon-be
+git clone https://github.com/rendyirawann/face-recognition-be.git
+git clone https://github.com/rendyirawann/face-recognition-fe.git   # harus berdampingan
+cd face-recognition-be
 setup.bat          # Windows
 ./setup.sh         # Linux/macOS
 ```
@@ -152,7 +152,7 @@ Semuanya dilayani satu nginx di `HTTP_PORT` (bawaan 80):
 | Swagger UI | <http://localhost/docs> |
 
 **Di server, jangan bangun dari sumber.** Pakai image siap pakai — tidak
-perlu meng-clone `jargon-fe`, dan tidak perlu toolchain apa pun:
+perlu meng-clone `face-recognition-fe`, dan tidak perlu toolchain apa pun:
 
 ```bash
 docker compose -f docker-compose.prod.yml pull
@@ -208,8 +208,8 @@ punya toolchain Rust.
 
 ```bash
 # di mesin build
-git clone https://github.com/rendyirawann/jargon-be.git
-cd jargon-be/api
+git clone https://github.com/rendyirawann/face-recognition-be.git
+cd face-recognition-be/api
 cargo build --release --locked      # butuh rustc >= 1.88
 
 # kirim ke server
@@ -282,7 +282,7 @@ curl -fsS http://127.0.0.1:8080/health
 ### 4. Dashboard (Laravel)
 
 ```bash
-sudo git clone https://github.com/rendyirawann/jargon-be.git /var/www/jargon
+sudo git clone https://github.com/rendyirawann/face-recognition-be.git /var/www/jargon
 cd /var/www/jargon/admin
 sudo composer install --no-dev --optimize-autoloader
 sudo cp .env.example .env
@@ -352,8 +352,8 @@ WantedBy=multi-user.target
 Dibangun di mesin build; server hanya menerima berkas statis.
 
 ```bash
-git clone https://github.com/rendyirawann/jargon-fe.git
-cd jargon-fe
+git clone https://github.com/rendyirawann/face-recognition-fe.git
+cd face-recognition-fe
 flutter build web --release --dart-define=API_SAME_ORIGIN=true
 scp -r build/web/* server:/var/www/jargon-web/
 ```
@@ -512,7 +512,7 @@ https://beoulve-dev.biz.id/jargon-be/docs        Swagger UI
 Seluruh sistem berada di **bawah satu awalan path**, bukan di akar domain
 — karena domain itu juga melayani hal lain. Aplikasi mobile diarahkan ke
 `https://beoulve-dev.biz.id/jargon-be`, dan awalan itu tersimpan sebagai
-`AppConfig.productionApiBaseUrl` di `jargon-fe/lib/core/config.dart`.
+`AppConfig.productionApiBaseUrl` di `face-recognition-fe/lib/core/config.dart`.
 
 ### Yang perlu disesuaikan
 

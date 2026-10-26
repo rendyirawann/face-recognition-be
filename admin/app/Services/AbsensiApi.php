@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Log;
 use RuntimeException;
 
 /**
- * Klien untuk API Rust (`jargon-be/api`).
+ * Klien untuk API Rust (`face-recognition-be/api`).
  *
  * PEMBAGIAN TANGGUNG JAWAB — ini bagian penting arsitekturnya:
  *
@@ -457,7 +457,7 @@ class AbsensiApi
             throw new RuntimeException(
                 'Sesi API tidak tersedia. Silakan keluar lalu masuk kembali agar dashboard '
                 .'mendapatkan token baru. Bila berulang, periksa apakah layanan API '
-                .'(jargon-be/api) sedang berjalan.'
+                .'(face-recognition-be/api) sedang berjalan.'
             );
         }
 

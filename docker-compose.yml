@@ -202,7 +202,7 @@ services:
   # -------------------------------------------------------------------
   web:
     build:
-      context: ../jargon-fe
+      context: ../face-recognition-fe
       args:
         FLUTTER_VERSION: ${FLUTTER_VERSION:-3.44.0}
         BUILD_MODE: ${WEB_BUILD_MODE:-release}

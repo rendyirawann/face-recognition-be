@@ -12,13 +12,13 @@ sekolah. Tiga layanan di atas satu backend: **absensi** pengenalan wajah,
       ┌───────────────────┐        ┌───────────────────┐
       │  Tablet di        │        │  Jargon GO        │
       │  gerbang / kelas  │        │  siswa, ortu,     │
-      │  (jargon-fe)      │        │  guru (jargon-fe) │
+      │  (face-recognition-fe)      │        │  guru (face-recognition-fe) │
       └────────┬──────────┘        └────────┬──────────┘
                │ Device token               │ Bearer JWT
                │ embedding 512-d            │ (login NIK/NISN)
                ▼                            ▼
       ┌───────────────────────────────────────────────┐
-      │        API  —  Rust / Axum  (jargon-be/api)   │
+      │        API  —  Rust / Axum  (face-recognition-be/api)   │
       │                                               │
       │  • pencocokan wajah (index per-sekolah)       │
       │  • aturan jam masuk/pulang                    │
@@ -38,7 +38,7 @@ sekolah. Tiga layanan di atas satu backend: **absensi** pengenalan wajah,
                                      ┌────────┴──────────────────┐
                                      │  Dashboard /admin         │
                                      │  Laravel 12 + Octane      │
-                                     │  (jargon-be/admin)       │
+                                     │  (face-recognition-be/admin)       │
                                      └───────────────────────────┘
                                                 │
                                      ┌──────────┴────────────┐
@@ -533,7 +533,7 @@ mengubah apa.
 ## 13. Peta berkas
 
 ```
-jargon-be/
+face-recognition-be/
 ├── api/                       Rust / Axum — API + Swagger + worker
 │   ├── migrations/            SUMBER KEBENARAN skema database (sqlx)
 │   │   ├── 0001-0010          absensi face recognition
@@ -561,7 +561,7 @@ jargon-be/
 ├── infra/                     docker-compose, nginx, init PostgreSQL
 └── docs/                      dokumen ini + panduan deployment
 
-jargon-fe/                     Flutter — tablet kios + aplikasi Jargon GO
+face-recognition-fe/                     Flutter — tablet kios + aplikasi Jargon GO
 ├── web/                       scaffolding debug di browser
 └── lib/
     ├── core/
@@ -654,7 +654,7 @@ integrasi dengan aplikasi Provsu lainnya.
 Disebutkan eksplisit agar tidak menjadi kejutan di lapangan:
 
 1. **Model TFLite tidak disertakan** dalam repositori (lisensi + ukuran).
-   Lihat `jargon-fe/assets/models/README.md`.
+   Lihat `face-recognition-fe/assets/models/README.md`.
 2. **Liveness pasif**, bukan anti-spoof kelas tinggi (§8).
 3. **Impor massal siswa** memiliki skema tabel (`import_jobs`) dan endpoint
    penyimpanan, tetapi pemrosesan CSV/XLSX-nya belum diimplementasikan.

@@ -11,7 +11,7 @@
 -- pengenal barisnya tetap (NPSN, NISN, NIK), bukan UUID acak.
 --
 -- Menjalankan:
---   docker compose exec -T postgres psql -U absensi -d absensi < jargon-be/api/seeds/demo.sql
+--   docker compose exec -T postgres psql -U absensi -d absensi < face-recognition-be/api/seeds/demo.sql
 -- atau lewat skrip pembungkusnya:
 --   scripts\seed-demo.bat
 --

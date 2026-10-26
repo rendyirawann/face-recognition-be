@@ -61,7 +61,7 @@ class StudentGuardian extends Model
      * Normalisasi nomor Indonesia ke 62xxx.
      *
      * Aturannya harus sama dengan `normalize_phone` di API Rust
-     * (jargon-be/api/src/domain/student.rs) supaya nomor yang dimasukkan
+     * (face-recognition-be/api/src/domain/student.rs) supaya nomor yang dimasukkan
      * lewat dashboard dan lewat API menghasilkan hasil identik.
      */
     public static function normalizePhone(?string $value): ?string

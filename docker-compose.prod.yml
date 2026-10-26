@@ -7,8 +7,8 @@
 # Bedanya dengan docker-compose.yml: berkas ini tidak MEMBANGUN apa pun.
 # Ia menarik image yang sudah dibangun CI, sehingga:
 #
-#   * Tidak perlu meng-clone jargon-fe. `docker-compose.yml` membangun
-#     service `web` dari ../jargon-fe, jadi memerlukan kedua repositori
+#   * Tidak perlu meng-clone face-recognition-fe. `docker-compose.yml` membangun
+#     service `web` dari ../face-recognition-fe, jadi memerlukan kedua repositori
 #     berdampingan. Di server, itu syarat yang tidak masuk akal.
 #   * Tidak perlu toolchain apa pun di server — tanpa Rust, tanpa PHP,
 #     tanpa Flutter SDK.

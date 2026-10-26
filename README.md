@@ -10,7 +10,7 @@ Repositori ini berisi **dua aplikasi** yang berbagi satu basis data:
 | `api/` — Rust (Axum) | API yang dipakai aplikasi mobile & tablet kios | `/v1/*`, dokumentasi di `/docs` |
 | `admin/` — Laravel | Dashboard web untuk petugas | `/admin` |
 
-Aplikasi mobilenya ada di repositori terpisah: [`jargon-fe`](https://github.com/rendyirawann/jargon-fe).
+Aplikasi mobilenya ada di repositori terpisah: [`face-recognition-fe`](https://github.com/rendyirawann/face-recognition-fe).
 
 > **Kenapa dua bahasa?** Jalur absensi menerima ribuan permintaan terkonsentrasi
 > di 45 menit setiap pagi dan mencocokkan vektor wajah — di situ Rust memberi
@@ -44,11 +44,11 @@ Kalau perintah itu gagal, Docker belum hidup. Buka Docker Desktop dulu.
 **1. Ambil kedua repositori, berdampingan dalam satu folder induk.**
 
 ```bash
-git clone https://github.com/rendyirawann/jargon-be.git
-git clone https://github.com/rendyirawann/jargon-fe.git
+git clone https://github.com/rendyirawann/face-recognition-be.git
+git clone https://github.com/rendyirawann/face-recognition-fe.git
 ```
 
-Aplikasi versi web dibangun dari `jargon-fe`, jadi tanpa repositori itu build
+Aplikasi versi web dibangun dari `face-recognition-fe`, jadi tanpa repositori itu build
 berhenti di tengah jalan. Galat bawaan Docker untuk konteks yang hilang tidak
 menyebut sama sekali bahwa yang kurang adalah sebuah repositori — karena itu
 `setup.bat` memeriksanya lebih dulu dan mengatakannya dengan jelas.
@@ -56,14 +56,14 @@ menyebut sama sekali bahwa yang kurang adalah sebuah repositori — karena itu
 **2. Jalankan penyiapan. Sekali saja, seumur pemasangan.**
 
 ```bat
-cd jargon-be
+cd face-recognition-be
 setup.bat
 ```
 
 Di Linux atau macOS:
 
 ```bash
-cd jargon-be
+cd face-recognition-be
 ./setup.sh
 ```
 
@@ -354,7 +354,7 @@ kamera pada `localhost` atau HTTPS.
 ## 9. Struktur repositori
 
 ```
-jargon-be/
+face-recognition-be/
 ├── api/                 API Rust (Axum)
 │   ├── migrations/      Skema basis data, dijalankan berurutan
 │   ├── seeds/           Data contoh, dijalankan manual

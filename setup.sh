@@ -21,18 +21,18 @@ echo "  Jargon GO — penyiapan"
 echo "  ====================="
 echo
 
-# --- jargon-fe harus ada di sebelah -----------------------------------
-# Service `web` dibangun dari ../jargon-fe (repositori terpisah). Diperiksa
+# --- face-recognition-fe harus ada di sebelah -----------------------------------
+# Service `web` dibangun dari ../face-recognition-fe (repositori terpisah). Diperiksa
 # di sini karena galat bawaan Docker untuk build context yang hilang tidak
 # menyebutkan sama sekali bahwa yang kurang adalah sebuah repositori.
-if [ ! -f ../jargon-fe/pubspec.yaml ]; then
-    echo "  [x] Repositori jargon-fe tidak ditemukan di sebelah repositori ini."
+if [ ! -f ../face-recognition-fe/pubspec.yaml ]; then
+    echo "  [x] Repositori face-recognition-fe tidak ditemukan di sebelah repositori ini."
     echo
-    echo "      Diharapkan: $(cd .. && pwd)/jargon-fe"
+    echo "      Diharapkan: $(cd .. && pwd)/face-recognition-fe"
     echo
     echo "      Clone keduanya berdampingan:"
-    echo "        git clone https://github.com/rendyirawann/jargon-be.git"
-    echo "        git clone https://github.com/rendyirawann/jargon-fe.git"
+    echo "        git clone https://github.com/rendyirawann/face-recognition-be.git"
+    echo "        git clone https://github.com/rendyirawann/face-recognition-fe.git"
     echo
     echo "      Tidak ingin membangun dari sumber? Pakai image siap pakai:"
     echo "        docker compose -f docker-compose.prod.yml up -d"

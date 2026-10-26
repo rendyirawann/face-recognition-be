@@ -55,7 +55,7 @@ php artisan view:cache   >/dev/null 2>&1 || true
 php artisan storage:link >/dev/null 2>&1 || true
 
 # CATATAN: `php artisan migrate` SENGAJA tidak dijalankan. Skema dimiliki
-# migrasi sqlx di jargon-be/api/migrations, yang dijalankan container API
+# migrasi sqlx di face-recognition-be/api/migrations, yang dijalankan container API
 # saat start. Menjalankan migrasi Laravel di sini akan menghasilkan dua
 # pemilik skema yang sama.
 

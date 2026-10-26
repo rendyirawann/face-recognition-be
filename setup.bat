@@ -29,21 +29,21 @@ echo   =====================
 echo.
 
 rem ----------------------------------------------------------------------
-rem  jargon-fe adalah REPOSITORI TERPISAH dan harus di-clone sebagai folder
-rem  sebelah, karena service `web` dibangun dari sana (context: ../jargon-fe).
+rem  face-recognition-fe adalah REPOSITORI TERPISAH dan harus di-clone sebagai folder
+rem  sebelah, karena service `web` dibangun dari sana (context: ../face-recognition-fe).
 rem
 rem  Diperiksa di sini, bukan dibiarkan gagal saat build: galat bawaan
 rem  Docker untuk context yang hilang tidak menyebutkan sama sekali bahwa
 rem  yang kurang adalah sebuah repositori.
 rem ----------------------------------------------------------------------
-if not exist "%ROOT%\..\jargon-fe\pubspec.yaml" (
-    echo   [x] Repositori jargon-fe tidak ditemukan di sebelah repositori ini.
+if not exist "%ROOT%\..\face-recognition-fe\pubspec.yaml" (
+    echo   [x] Repositori face-recognition-fe tidak ditemukan di sebelah repositori ini.
     echo.
-    echo       Diharapkan: %ROOT%\..\jargon-fe
+    echo       Diharapkan: %ROOT%\..\face-recognition-fe
     echo.
     echo       Clone keduanya berdampingan:
-    echo         git clone https://github.com/rendyirawann/jargon-be.git
-    echo         git clone https://github.com/rendyirawann/jargon-fe.git
+    echo         git clone https://github.com/rendyirawann/face-recognition-be.git
+    echo         git clone https://github.com/rendyirawann/face-recognition-fe.git
     echo.
     echo       Tidak ingin membangun dari sumber? Pakai image siap pakai:
     echo         docker compose -f docker-compose.prod.yml up -d

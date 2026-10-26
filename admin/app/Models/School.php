@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 /**
  * Sekolah = tenant sistem.
  *
- * Skema tabel dimiliki oleh migrasi sqlx pada `jargon-be/api/migrations`.
+ * Skema tabel dimiliki oleh migrasi sqlx pada `face-recognition-be/api/migrations`.
  * Model ini sengaja tidak memakai `$guarded = []`: kolom `slug` dan `npsn`
  * ikut menentukan identitas, jadi perubahannya harus lewat jalur eksplisit.
  */
