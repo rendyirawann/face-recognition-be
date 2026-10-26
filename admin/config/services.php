@@ -73,7 +73,7 @@ return [
         'secret' => env('ABSENSI_API_SECRET'),
         'timeout' => env('ABSENSI_API_TIMEOUT', 20),
         'embedding_dim' => env('FACE_EMBEDDING_DIM', 512),
-        'face_model_version' => env('FACE_MODEL_VERSION', 'mobilefacenet-v1'),
+        'face_model_version' => env('FACE_MODEL_VERSION', 'faceapi-v2'),
         'docs_url' => env('ABSENSI_API_DOCS_URL', env('ABSENSI_API_PUBLIC_URL', 'http://127.0.0.1:8080').'/docs'),
     ],
 
