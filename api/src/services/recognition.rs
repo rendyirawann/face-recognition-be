@@ -110,7 +110,18 @@ pub async fn recognize(
 
     // --- 2. Bentuk vektor ---------------------------------------------
     vector::validate(&req.embedding, face_cfg.embedding_dim)?;
-    let query = vector::normalized(&req.embedding);
+    // TIDAK dinormalisasi, dan ini penting.
+    //
+    // Pendaftaran menyimpan descriptor APA ADANYA sejak perbaikan
+    // salah-kenal; baris ini tertinggal menormalkan kuerinya, sehingga
+    // vektor ber-norm 1 dibandingkan dengan vektor tersimpan ber-norm
+    // ~1,41. Jaraknya lalu didominasi selisih panjang, bukan arah, dan
+    // kalibrasi ambang 0,70 <-> jarak 0,6 tidak lagi berlaku: siswa yang
+    // normanya kebetulan mendekati 1 menjadi magnet yang dicocoki wajah
+    // siapa saja.
+    //
+    // Keduanya kini mentah, sebagaimana yang diukur di euclid_score.
+    let query = req.embedding.clone();
     let embedding_hash = vector::hash_embedding(&query);
 
     // --- 3. Liveness ---------------------------------------------------

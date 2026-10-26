@@ -1,8 +1,12 @@
 //! Operasi vektor untuk embedding wajah.
 //!
-//! Konvensi: semua embedding disimpan dan dibandingkan dalam bentuk
-//! L2-normalized. Dengan begitu cosine similarity = dot product, sehingga
-//! pencocokan hanya butuh satu perkalian-jumlah tanpa akar kuadrat.
+//! Konvensi: descriptor disimpan dan dibandingkan APA ADANYA, tanpa
+//! normalisasi. Panjang vektornya membawa informasi yang justru
+//! membedakan satu orang dari orang lain, dan menormalkannya membuang
+//! informasi itu — lihat `euclid_score` untuk angka pengukurannya.
+//!
+//! `l2_normalize` dan `normalized` tetap ada karena masih dipakai di
+//! tempat lain, bukan sebagai konvensi penyimpanan.
 
 use sha2::{Digest, Sha256};
 
@@ -125,6 +129,32 @@ mod tests {
         let mut v = vec![3.0, 4.0];
         l2_normalize(&mut v);
         assert!((norm(&v) - 1.0).abs() < 1e-6);
+    }
+
+    #[test]
+    fn menormalkan_sepihak_menggerus_jatah_ambang() {
+        // Descriptor face-api ber-norm sekitar 1,41, bukan 1. Bila sisi
+        // kueri dinormalisasi sementara yang tersimpan mentah, jarak sudah
+        // terisi oleh selisih PANJANG sebelum arah wajah ikut dihitung
+        // sama sekali.
+        let d = vec![1.0_f32, 1.0];
+        assert!((norm(&d) - std::f32::consts::SQRT_2).abs() < 1e-5);
+
+        // Orang yang sama, descriptor identik, dua-duanya mentah.
+        assert!((euclid_score(&d, &d) - 1.0).abs() < 1e-6);
+
+        // Wajah yang sama persis, tetapi satu sisi dinormalisasi.
+        let timpang = euclid_score(&normalized(&d), &d);
+
+        // Masih di atas ambang 0,70 — karena itulah cacatnya tidak terlihat
+        // sebagai kegagalan — tetapi jatah untuk variasi wajah yang wajar
+        // tinggal 0,09 dari semula 0,30. Yang tersisa itu habis oleh
+        // perbedaan cahaya dan sudut, dan siswa yang normanya kebetulan
+        // mendekati 1 berubah menjadi magnet yang dicocoki wajah siapa pun.
+        assert!(
+            timpang < 0.80,
+            "normalisasi sepihak seharusnya menggerus skor, dapat {timpang}"
+        );
     }
 
     #[test]

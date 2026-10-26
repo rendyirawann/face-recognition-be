@@ -59,7 +59,20 @@ pub struct FaceConfig {
     /// Dimensi embedding. Harus sama dengan model di tablet.
     pub embedding_dim: usize,
     pub model_version: String,
-    /// Ambang cosine similarity minimum untuk menerima kecocokan.
+    /// Skor kemiripan minimum untuk menerima kecocokan.
+    ///
+    /// BUKAN cosine, meski namanya pernah begitu. Skornya diturunkan dari
+    /// JARAK EUCLID oleh `vector::euclid_score`: skor = 1 - jarak/2.
+    /// Jadi 0,70 setara jarak 0,6 — ambang baku face-api — dan menaikkan
+    /// angka ini MEMPERKETAT, bukan melonggarkan.
+    ///
+    /// Menyetelnya dengan intuisi cosine berbahaya: 0,82, yang dulu wajar
+    /// untuk cosine, kini berarti jarak 0,36 dan praktis tidak ada siswa
+    /// yang lolos. Lihat alasan pindahnya di `vector::euclid_score`.
+    ///
+    /// Dapat ditimpa per sekolah lewat kolom `schools.face_match_threshold`,
+    /// sehingga sekolah yang mengalami salah-kenal bisa diperketat tanpa
+    /// membangun ulang image.
     pub match_threshold: f32,
     /// Selisih minimum antara kandidat terbaik dan kedua. Mencegah
     /// penerimaan saat dua siswa (mis. kembar) sama-sama mirip.
