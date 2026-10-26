@@ -50,38 +50,6 @@ pub fn normalized(v: &[f32]) -> Vec<f32> {
     out
 }
 
-/// Dot product. Di-unroll 4x agar autovectorizer LLVM menghasilkan SIMD
-/// (SSE/AVX di server x86_64, NEON di ARM) tanpa `unsafe`.
-#[inline]
-pub fn dot(a: &[f32], b: &[f32]) -> f32 {
-    debug_assert_eq!(a.len(), b.len());
-    let n = a.len();
-    let chunks = n / 4;
-    let mut s0 = 0.0f32;
-    let mut s1 = 0.0f32;
-    let mut s2 = 0.0f32;
-    let mut s3 = 0.0f32;
-    for i in 0..chunks {
-        let j = i * 4;
-        s0 += a[j] * b[j];
-        s1 += a[j + 1] * b[j + 1];
-        s2 += a[j + 2] * b[j + 2];
-        s3 += a[j + 3] * b[j + 3];
-    }
-    let mut s = s0 + s1 + s2 + s3;
-    for i in (chunks * 4)..n {
-        s += a[i] * b[i];
-    }
-    s
-}
-
-/// Cosine similarity untuk dua vektor yang sudah dinormalisasi.
-/// Hasil dijepit ke [-1, 1] agar bebas dari galat pembulatan.
-#[inline]
-pub fn cosine_normalized(a: &[f32], b: &[f32]) -> f32 {
-    dot(a, b).clamp(-1.0, 1.0)
-}
-
 /// Jarak Euclid antara dua descriptor APA ADANYA (tanpa normalisasi).
 #[inline]
 pub fn euclid(a: &[f32], b: &[f32]) -> f32 {
@@ -115,6 +83,11 @@ pub fn euclid(a: &[f32], b: &[f32]) -> f32 {
 /// cocok. Normalisasi membuang informasi panjang vektor yang justru
 /// membedakan — karena itu descriptor kini disimpan dan dibandingkan
 /// apa adanya.
+///
+/// `cosine_normalized` beserta `dot` yang melayaninya SUDAH DIBUANG,
+/// bukan sekadar tidak dipakai. Fungsi yang masih tersedia adalah
+/// undangan untuk memakainya lagi, dan angka di atas menunjukkan apa
+/// akibatnya.
 ///
 /// Pembagi 2,0 memetakan jarak 0..2 ke skor 1..0, jadi ambang jarak 0,6
 /// setara skor 0,70 dan selisih jarak 0,05 setara selisih skor 0,025.
@@ -152,27 +125,6 @@ mod tests {
         let mut v = vec![3.0, 4.0];
         l2_normalize(&mut v);
         assert!((norm(&v) - 1.0).abs() < 1e-6);
-    }
-
-    #[test]
-    fn vektor_identik_similarity_satu() {
-        let a = normalized(&[0.1, 0.9, -0.3, 0.5]);
-        assert!((cosine_normalized(&a, &a) - 1.0).abs() < 1e-5);
-    }
-
-    #[test]
-    fn vektor_ortogonal_similarity_nol() {
-        let a = normalized(&[1.0, 0.0]);
-        let b = normalized(&[0.0, 1.0]);
-        assert!(cosine_normalized(&a, &b).abs() < 1e-6);
-    }
-
-    #[test]
-    fn dot_konsisten_untuk_panjang_bukan_kelipatan_empat() {
-        let a: Vec<f32> = (0..13).map(|i| i as f32).collect();
-        let b: Vec<f32> = (0..13).map(|i| (13 - i) as f32).collect();
-        let expected: f32 = a.iter().zip(&b).map(|(x, y)| x * y).sum();
-        assert!((dot(&a, &b) - expected).abs() < 1e-3);
     }
 
     #[test]
