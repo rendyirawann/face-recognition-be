@@ -13,6 +13,7 @@
 //!
 //!   Jargon GO (aplikasi mobile):
 //!   /v1/me/*                               -> data milik pengguna sendiri
+//!   /v1/me/pkl, /v1/me/pkl/attendance      -> absensi siswa di tempat PKL
 //! ```
 
 pub mod attendance;
@@ -25,6 +26,7 @@ pub mod health;
 pub mod kiosk;
 pub mod me;
 pub mod notifications;
+pub mod pkl;
 pub mod schools;
 pub mod students;
 pub mod users;
@@ -49,6 +51,7 @@ pub fn v1() -> Router<AppState> {
         .merge(users::router())
         // --- Jargon GO (Super Apps) ---
         .merge(me::router())
+        .merge(pkl::router())
 }
 
 /// Endpoint di luar prefix `/v1`.

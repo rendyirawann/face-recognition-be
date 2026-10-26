@@ -8,6 +8,7 @@ pub mod attendance;
 pub mod device;
 pub mod face;
 pub mod notification;
+pub mod pkl;
 pub mod school;
 pub mod student;
 pub mod user;

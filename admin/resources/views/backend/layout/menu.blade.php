@@ -148,6 +148,18 @@
             </div>
         @endif
 
+        {{-- -------------------------------------------------------- PKL --}}
+        @if ($can('view_pkl'))
+            <div class="menu-item me-0 me-lg-1 {{ $is('admin/pkl*') ? 'here show menu-here-bg' : '' }}">
+                <a class="menu-link py-3" href="{{ route('pkl.index') }}">
+                    <span class="menu-icon">
+                        <i class="ki-duotone ki-geolocation fs-4"><span class="path1"></span><span class="path2"></span></i>
+                    </span>
+                    <span class="menu-title">PKL</span>
+                </a>
+            </div>
+        @endif
+
         {{-- ---------------------------------------------------- Layanan --}}
         @if ($can('manage_app_account'))
             <div data-kt-menu-trigger="{default: 'click', lg: 'hover'}" data-kt-menu-placement="bottom-start"
