@@ -11,6 +11,7 @@
 
 pub mod maintenance;
 pub mod outbox;
+pub mod recap;
 
 use crate::state::AppState;
 
@@ -21,6 +22,7 @@ pub fn spawn_all(
 ) -> Vec<tokio::task::JoinHandle<()>> {
     vec![
         tokio::spawn(outbox::run(state.clone(), shutdown.clone())),
+        tokio::spawn(recap::run(state.clone(), shutdown.clone())),
         tokio::spawn(maintenance::run(state, shutdown)),
     ]
 }
