@@ -166,6 +166,7 @@ mengakses data sekolahnya; menyebut `school_id` sekolah lain akan menghasilkan
         crate::routes::notifications::list_outbox,
         crate::routes::notifications::retry,
         crate::routes::notifications::send_manual,
+        crate::routes::notifications::send_recap,
         crate::routes::notifications::stats,
         // Pengguna
         crate::routes::users::list,
@@ -253,6 +254,8 @@ mengakses data sekolahnya; menyebut `school_id` sekolah lain akan menghasilkan
             crate::domain::notification::OutboxItem,
             crate::domain::notification::SendMessageRequest,
             crate::domain::notification::SendMessageResponse,
+            crate::domain::notification::SendRecapRequest,
+            crate::domain::notification::SendRecapResponse,
             crate::domain::notification::SkippedRecipient,
             crate::domain::notification::NotificationPolicy,
             crate::domain::notification::UpdatePolicyRequest,

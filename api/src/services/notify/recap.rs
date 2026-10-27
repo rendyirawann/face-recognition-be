@@ -164,7 +164,13 @@ impl BarisRekap {
     }
 }
 
-/// Antrikan rekap satu sekolah untuk satu periode.
+/// Antrikan rekap untuk satu periode.
+///
+/// `student_id` kosong berarti seluruh siswa aktif di sekolah itu — yang
+/// dipakai penjadwal. Diisi berarti satu siswa saja, yang dipakai tombol
+/// kirim manual. Satu fungsi untuk keduanya supaya isi pesan yang diterima
+/// orang tua tidak pernah berbeda antara yang terjadwal dan yang dikirim
+/// petugas.
 ///
 /// Mengembalikan jumlah pesan yang masuk antrean.
 pub async fn enqueue(
@@ -174,6 +180,7 @@ pub async fn enqueue(
     kind: RecapKind,
     awal: NaiveDate,
     akhir: NaiveDate,
+    student_id: Option<Uuid>,
 ) -> ApiResult<usize> {
     let baris: Vec<BarisRekap> = sqlx::query_as(
         r#"
@@ -199,6 +206,7 @@ pub async fn enqueue(
                                  AND a.attendance_date BETWEEN $2 AND $3
          WHERE s.school_id = $1
            AND s.status = 'aktif'
+           AND ($4::uuid IS NULL OR s.id = $4)
          GROUP BY s.id, s.full_name, c.name, g.id, g.full_name,
                   g.whatsapp, g.phone, g.email, g.telegram_chat_id,
                   g.preferred_channel
@@ -209,6 +217,7 @@ pub async fn enqueue(
     .bind(school_id)
     .bind(awal)
     .bind(akhir)
+    .bind(student_id)
     .fetch_all(&mut **tx)
     .await?;
 

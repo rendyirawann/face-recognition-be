@@ -156,6 +156,7 @@ Route::middleware(['auth', 'forbid-banned-user'])->group(function () {
     Route::get('/admin/students/data', [StudentController::class, 'data'])->name('students.data');
     Route::get('/admin/students/classrooms', [StudentController::class, 'classroomsBySchool'])->name('students.classrooms');
     Route::resource('/admin/students', StudentController::class)->names('students');
+    Route::post('/admin/students/{student}/rekap', [StudentController::class, 'kirimRekap'])->name('students.recap')->whereUuid('student');
     Route::post('/admin/students/{student}/guardians', [StudentController::class, 'storeGuardian'])->name('students.guardians.store')->whereUuid('student');
     Route::put('/admin/students/{student}/guardians/{guardian}', [StudentController::class, 'updateGuardian'])->name('students.guardians.update')->whereUuid(['student', 'guardian']);
     Route::delete('/admin/students/{student}/guardians/{guardian}', [StudentController::class, 'destroyGuardian'])->name('students.guardians.destroy')->whereUuid(['student', 'guardian']);

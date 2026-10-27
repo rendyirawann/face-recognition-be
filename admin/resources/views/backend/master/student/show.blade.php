@@ -336,6 +336,48 @@
                 </div>
             </div>
 
+            {{-- Kirim rekap ke orang tua.
+
+                 Ditempatkan tepat di atas daftar wali murid, bukan di
+                 halaman notifikasi tersendiri: yang menentukan apakah
+                 rekapnya akan sampai adalah chat ID dan status notifikasi
+                 tiap wali, dan keduanya terbaca persis di bawah tombol ini.
+                 Petugas yang menekan tombol dapat langsung melihat ke mana
+                 pesannya pergi. --}}
+            @can('send_recap')
+                <div class="card card-flush border border-gray-200 mb-5">
+                    <div class="card-header pt-5">
+                        <h3 class="card-title fw-bold">Kirim Rekap ke Orang Tua</h3>
+                    </div>
+                    <div class="card-body pt-3">
+                        <p class="text-muted fs-8 mb-4">
+                            Rekap kehadiran ananda dikirim ke wali murid lewat kanal
+                            pilihan masing-masing. Periodenya dihitung server: harian
+                            berarti hari ini, mingguan tujuh hari terakhir, dan bulanan
+                            adalah bulan lalu yang sudah selesai.
+                        </p>
+                        <form method="POST" action="{{ route('students.recap', $student->id) }}"
+                              class="d-flex flex-wrap align-items-center gap-2">
+                            @csrf
+                            <select name="kind" class="form-select form-select-sm w-auto">
+                                <option value="daily_recap">Rekap harian</option>
+                                <option value="weekly_recap">Rekap mingguan</option>
+                                <option value="monthly_recap">Rekap bulanan</option>
+                            </select>
+                            <button class="btn btn-sm btn-primary"
+                                    @disabled($student->guardians->isEmpty())>
+                                <i class="ki-outline ki-send fs-5 me-1"></i>Kirim sekarang
+                            </button>
+                            @if ($student->guardians->isEmpty())
+                                <span class="text-muted fs-8">
+                                    Belum ada wali murid yang terdaftar.
+                                </span>
+                            @endif
+                        </form>
+                    </div>
+                </div>
+            @endcan
+
             {{-- Wali murid --}}
             <div class="card card-flush border border-gray-200">
                 <div class="card-header pt-5"><h3 class="card-title fw-bold">Wali Murid</h3></div>

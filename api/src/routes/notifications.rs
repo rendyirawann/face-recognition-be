@@ -9,11 +9,13 @@ use crate::auth::AuthUser;
 use crate::domain::notification::{
     mask_recipient, render_template, ChannelStat, NotificationPolicy, NotificationStats,
     NotificationTemplate, OutboxFilter, OutboxItem, SendMessageRequest, SendMessageResponse,
-    SkippedRecipient, UpdatePolicyRequest, UpsertTemplateRequest, CHANNELS, TEMPLATE_KEYS,
+    SendRecapRequest, SendRecapResponse, SkippedRecipient, UpdatePolicyRequest,
+    UpsertTemplateRequest, CHANNELS, TEMPLATE_KEYS,
 };
 use crate::error::{ApiError, ApiResult};
 use crate::extract::{ValidJson, ValidQuery};
 use crate::services::audit::AuditEntry;
+use crate::services::notify::recap::{self, RecapKind};
 use crate::state::AppState;
 use crate::util::{self, ApiResponse, PageQuery, Paginated};
 
@@ -24,6 +26,7 @@ pub fn router() -> Router<AppState> {
         .route("/notifications/outbox", get(list_outbox))
         .route("/notifications/outbox/{id}/retry", post(retry))
         .route("/notifications/send", post(send_manual))
+        .route("/notifications/recap", post(send_recap))
         .route("/notifications/stats", get(stats))
 }
 
@@ -462,6 +465,80 @@ pub async fn send_manual(
     ))
 }
 
+/// Kirim rekap kehadiran seorang siswa ke walinya, sekarang juga.
+///
+/// SENGAJA TIDAK MENCATAT KLAIM PERIODE
+///
+/// Penjadwal memakai `notification_recap_runs` agar satu periode tidak
+/// terkirim dua kali. Pengiriman manual tidak: petugas BK yang mengirim
+/// ulang biasanya memang bermaksud demikian — orang tua mengaku tidak
+/// menerima, nomornya baru diperbaiki, atau rekapnya diminta saat
+/// pertemuan wali kelas. Menolak permintaan kedua dengan diam akan
+/// terbaca sebagai tombol yang rusak.
+#[utoipa::path(
+    post, path = "/v1/notifications/recap", tag = "Notifikasi",
+    request_body = SendRecapRequest,
+    security(("bearer" = [])),
+    responses((status = 200, description = "Rekap diantrikan"))
+)]
+pub async fn send_recap(
+    State(state): State<AppState>,
+    user: AuthUser,
+    ValidJson(body): ValidJson<SendRecapRequest>,
+) -> ApiResult<ApiResponse<SendRecapResponse>> {
+    user.require("send_recap")?;
+
+    let kind = match body.kind.as_str() {
+        "daily_recap" => RecapKind::Harian,
+        "weekly_recap" => RecapKind::Mingguan,
+        "monthly_recap" => RecapKind::Bulanan,
+        _ => return Err(ApiError::field("kind", "jenis rekap tidak dikenal")),
+    };
+
+    let row: Option<(Uuid, String)> = sqlx::query_as(
+        r#"
+        SELECT s.school_id, sc.name
+          FROM students s
+          JOIN schools sc ON sc.id = s.school_id
+         WHERE s.id = $1 AND s.deleted_at IS NULL
+        "#,
+    )
+    .bind(body.student_id)
+    .fetch_optional(&state.db)
+    .await?;
+
+    let (school_id, school_name) = row.ok_or_else(|| ApiError::NotFound("siswa".into()))?;
+    user.resolve_school(Some(school_id))?;
+
+    let (awal, akhir) = recap::periode(kind, util::now_wib().date_naive());
+
+    let mut tx = state.db.begin().await?;
+    let queued = recap::enqueue(
+        &mut tx, school_id, &school_name, kind, awal, akhir, Some(body.student_id),
+    )
+    .await?;
+    tx.commit().await?;
+
+    AuditEntry::by_user(&user, "notification.recap")
+        .school(school_id)
+        .entity("student", body.student_id)
+        .after(&serde_json::json!({
+            "kind": kind.as_str(),
+            "queued": queued,
+            "period_start": awal,
+            "period_end": akhir,
+        }))
+        .write(&state.db)
+        .await;
+
+    Ok(ApiResponse::new(SendRecapResponse {
+        queued,
+        periode: recap::label_periode(kind, awal, akhir),
+        period_start: awal,
+        period_end: akhir,
+    }))
+}
+
 /// Statistik pengiriman notifikasi.
 #[utoipa::path(
     get, path = "/v1/notifications/stats", tag = "Notifikasi",
@@ -469,6 +546,7 @@ pub async fn send_manual(
     security(("bearer" = [])),
     responses((status = 200, description = "Statistik notifikasi", body = NotificationStats))
 )]
+
 pub async fn stats(
     State(state): State<AppState>,
     user: AuthUser,

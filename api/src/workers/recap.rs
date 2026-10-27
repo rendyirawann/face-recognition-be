@@ -165,7 +165,8 @@ async fn kirim(
     }
 
     let queued =
-        recap::enqueue(&mut tx, j.school_id, &j.school_name, kind, awal, akhir).await?;
+        recap::enqueue(&mut tx, j.school_id, &j.school_name, kind, awal, akhir, None)
+            .await?;
 
     sqlx::query(
         r#"

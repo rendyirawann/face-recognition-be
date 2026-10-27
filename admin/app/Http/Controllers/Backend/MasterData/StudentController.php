@@ -9,6 +9,7 @@ use App\Models\Student;
 use App\Models\StudentGuardian;
 use App\Models\PklPlacement;
 use App\Models\User;
+use App\Services\AbsensiApi;
 use App\Support\Tenant;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -38,6 +39,7 @@ class StudentController extends Controller implements HasMiddleware
             new Middleware('can:update_student', only: ['edit', 'update']),
             new Middleware('can:delete_student', only: ['destroy']),
             new Middleware('can:manage_guardian', only: ['storeGuardian', 'updateGuardian', 'destroyGuardian']),
+            new Middleware('can:send_recap', only: ['kirimRekap']),
         ];
     }
 
@@ -200,6 +202,52 @@ class StudentController extends Controller implements HasMiddleware
                 ->first(),
 
         ]);
+    }
+
+    /**
+     * Kirim rekap kehadiran siswa ini ke walinya, sekarang juga.
+     *
+     * Tidak menulis ke outbox langsung: aturan periode, pemilihan kanal
+     * tiap wali, dan perangkaian pesannya ada di API Rust, dan dipakai
+     * bersama oleh penjadwal rekap otomatis.
+     */
+    public function kirimRekap(Request $request, Student $student): RedirectResponse
+    {
+        Tenant::authorizeSchool($student->school_id);
+
+        $data = $request->validate([
+            'kind' => ['required', 'in:daily_recap,weekly_recap,monthly_recap'],
+        ], [
+            'kind.in' => 'Jenis rekap tidak dikenal.',
+        ]);
+
+        $hasil = AbsensiApi::make()->sendRecap(
+            AbsensiApi::tokenFromSession(),
+            $student->id,
+            $data['kind'],
+        );
+
+        if (! $hasil['success']) {
+            return back()->withErrors(['kind' => $hasil['message']]);
+        }
+
+        $payload = $hasil['data'] ?? [];
+        $jumlah = (int) ($payload['queued'] ?? 0);
+
+        // Nol wali bukan kegagalan API, tetapi tetap harus terbaca sebagai
+        // "tidak ada yang terkirim". Tanpa ini petugas melihat pesan sukses
+        // dan menganggap orang tua sudah menerima rekapnya.
+        if ($jumlah === 0) {
+            return back()->with('warning',
+                'Tidak ada pesan terkirim. Periksa apakah wali murid sudah '
+                .'punya chat ID Telegram dan notifikasinya aktif.');
+        }
+
+        return back()->with('success', sprintf(
+            'Rekap %s diantrikan untuk %d wali murid.',
+            $payload['periode'] ?? '',
+            $jumlah,
+        ));
     }
 
     public function edit(Student $student): View

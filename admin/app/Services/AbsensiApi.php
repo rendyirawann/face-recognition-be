@@ -265,6 +265,25 @@ class AbsensiApi
      * @param  array<int, string>  $studentIds
      * @return array<string, mixed>
      */
+    /**
+     * Kirim rekap kehadiran seorang siswa ke walinya.
+     *
+     * Periodenya tidak dikirim dari sini: server yang menghitungnya dari
+     * jenis rekap. Kalau rentang tanggalnya boleh ditentukan dashboard,
+     * dua petugas dapat mengirim rekap "bulan ini" dengan batas berbeda,
+     * dan orang tua menerima dua angka yang sama-sama mengaku benar.
+     */
+    public function sendRecap(string $accessToken, string $studentId, string $kind): array
+    {
+        return $this->handle(
+            $this->asUser($accessToken)->post('/v1/notifications/recap', [
+                'student_id' => $studentId,
+                'kind' => $kind,
+            ]),
+            'pengiriman rekap'
+        );
+    }
+
     public function sendNotification(
         string $accessToken,
         array $studentIds,

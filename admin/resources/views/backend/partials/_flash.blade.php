@@ -14,6 +14,17 @@
     </div>
 @endif
 
+{{-- Peringatan: perintahnya berhasil, tetapi hasilnya tidak seperti yang
+     diharapkan operator — misalnya rekap terkirim ke nol wali karena belum
+     ada chat ID Telegram. Tanpa blok ini pesan semacam itu tertelan diam-
+     diam, dan justru itulah pesan yang paling perlu terbaca. --}}
+@if (session('warning'))
+    <div class="alert alert-warning d-flex align-items-center mt-5 mb-0">
+        <i class="ki-duotone ki-information-5 fs-2 me-3"><span class="path1"></span><span class="path2"></span><span class="path3"></span></i>
+        <span>{{ session('warning') }}</span>
+    </div>
+@endif
+
 @if ($errors->any())
     <div class="alert alert-danger mt-5 mb-0">
         <div class="d-flex align-items-center mb-2">

@@ -90,6 +90,28 @@ pub struct OutboxFilter {
     pub channel: Option<String>,
 }
 
+/// Kirim rekap kehadiran seorang siswa ke walinya, atas permintaan petugas.
+///
+/// Periodenya TIDAK dikirim klien, melainkan dihitung server dari jenisnya.
+/// Kalau rentang tanggal boleh ditentukan dari luar, dua petugas dapat
+/// mengirim rekap "bulan ini" dengan batas yang berbeda, dan orang tua
+/// menerima dua angka yang sama-sama mengaku benar.
+#[derive(Debug, Deserialize, Validate, ToSchema)]
+pub struct SendRecapRequest {
+    pub student_id: Uuid,
+    /// `daily_recap`, `weekly_recap`, atau `monthly_recap`.
+    pub kind: String,
+}
+
+#[derive(Debug, Serialize, ToSchema)]
+pub struct SendRecapResponse {
+    pub queued: usize,
+    /// Periode sebagaimana tertulis di pesan yang diterima orang tua.
+    pub periode: String,
+    pub period_start: chrono::NaiveDate,
+    pub period_end: chrono::NaiveDate,
+}
+
 /// Kirim pesan bebas ke wali murid dari halaman monitoring.
 #[derive(Debug, Deserialize, Validate, ToSchema)]
 pub struct SendMessageRequest {
