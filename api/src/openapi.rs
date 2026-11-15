@@ -65,8 +65,8 @@ mengakses data sekolahnya; menyebut `school_id` sekolah lain akan menghasilkan
 * Menghapus siswa memusnahkan seluruh gambar dan vektornya.
 "#,
         contact(
-            name = "Dinas Pendidikan Provinsi Sumatera Utara",
-            url = "https://disdik.sumutprov.go.id"
+            name = "MDT Solution",
+            url = "https://mdt-solution.site"
         ),
         license(name = "Proprietary")
     ),

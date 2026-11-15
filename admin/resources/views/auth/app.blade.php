@@ -86,15 +86,15 @@
 
             <div class="jg-auth__aside">
                 <img class="jg-auth__logo-watermark" src="{{ asset('assets/media/logos/' . $siteLogo) }}" alt="" />
-                <h2>Absensi Wajah<br>Dinas Pendidikan Sumatera Utara</h2>
+                <h2>Absensi Wajah<br>SMKS Sinar Husni</h2>
                 <p>
                     Satu pintu untuk kehadiran siswa, perangkat tablet sekolah, dan
-                    laporan harian se-provinsi.
+                    laporan harian sekolah.
                 </p>
                 <ul class="jg-auth__points">
                     <li>
                         <span class="jg-dot">1</span>
-                        <span>Kehadiran dipindai di tablet sekolah, tercatat seketika di provinsi.</span>
+                        <span>Kehadiran dipindai di tablet sekolah, langsung tercatat di sistem.</span>
                     </li>
                     <li>
                         <span class="jg-dot">2</span>

@@ -20,14 +20,14 @@
                         <img alt="Logo" src="{{ asset('assets/media/logos/' . ($appSettings['site_logo'] ?? 'base-logo.png')) }}" />
                         <div>
                             <div class="jg-auth__brand-name">{{ $appSettings['site_name'] ?? 'Jargon GO' }}</div>
-                            <div class="jg-auth__brand-sub">Dinas Pendidikan Provinsi Sumatera Utara</div>
+                            <div class="jg-auth__brand-sub">SMKS Sinar Husni</div>
                         </div>
                     </div>
 
                     <h1 class="jg-auth__title">Masuk Dashboard</h1>
                     <p class="jg-auth__sub">
                         Akun dibuat oleh administrator. Bila lupa kata sandi, hubungi
-                        operator dinas.
+                        operator sekolah.
                     </p>
                 </div>
 
@@ -38,7 +38,7 @@
 
                         <div class="fv-row mb-6">
                             <label class="form-label" for="jg_login_identifier">Email, No. WhatsApp, atau Nama Pengguna</label>
-                            <input type="text" id="jg_login_identifier" placeholder="mis. operator@disdik.sumutprov.go.id"
+                            <input type="text" id="jg_login_identifier" placeholder="mis. admin.SMT0000627"
                                 name="email" autocomplete="username"
                                 class="form-control bg-transparent" />
                         </div>

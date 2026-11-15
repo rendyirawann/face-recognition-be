@@ -17,7 +17,7 @@
         <a href="{{ route('dashboard') }}" class="mb-4">
             <img alt="Logo" src="{{ asset('assets/media/logos/' . $siteLogo) }}" class="h-40px" />
         </a>
-        <h5 class="fw-bold text-gray-800 mb-0 fs-6 text-center">{{ $appSettings['site_name'] ?? 'Absensi Disdik Sumut' }}</h5>
+        <h5 class="fw-bold text-gray-800 mb-0 fs-6 text-center">{{ $appSettings['site_name'] ?? 'Absensi SMKS Sinar Husni' }}</h5>
         <span class="text-muted fs-8 text-center">{{ $u?->scope_label }}</span>
     </div>
     <!--end::Sidebar Header-->

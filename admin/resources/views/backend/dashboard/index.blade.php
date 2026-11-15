@@ -9,7 +9,7 @@
         <div>
             <h2 class="fw-bold text-gray-900 mb-1">
                 @if ($isProvince && ! $schoolId)
-                    Ikhtisar Provinsi Sumatera Utara
+                    Ikhtisar SMKS Sinar Husni
                 @else
                     {{ $school?->name ?? 'Dashboard' }}
                 @endif

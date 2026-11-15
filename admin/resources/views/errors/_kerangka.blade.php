@@ -163,7 +163,7 @@
         </div>
 
         <div class="kaki">
-            Jargon GO &middot; Dinas Pendidikan Provinsi Sumatera Utara
+            Jargon GO &middot; SMKS Sinar Husni
         </div>
     </div>
 </body>

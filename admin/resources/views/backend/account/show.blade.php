@@ -134,7 +134,7 @@
                         <span class="text-muted d-block">Cakupan</span>
                         <span class="fw-semibold">
                             {{ $account->school->name
-                                ?? ($isParent ? 'mengikuti sekolah anaknya' : 'Provinsi Sumatera Utara') }}
+                                ?? ($isParent ? 'mengikuti sekolah anaknya' : 'Seluruh sekolah') }}
                         </span>
                     </div>
                     <div class="mb-3">

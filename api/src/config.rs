@@ -230,7 +230,7 @@ impl Config {
                 smtp_username: env_str("SMTP_USERNAME"),
                 smtp_password: env_str("SMTP_PASSWORD"),
                 smtp_from: env_or("SMTP_FROM", "no-reply@disdik.sumutprov.go.id"),
-                smtp_from_name: env_or("SMTP_FROM_NAME", "Absensi Disdik Sumut"),
+                smtp_from_name: env_or("SMTP_FROM_NAME", "Absensi SMKS Sinar Husni"),
                 smtp_starttls: env_bool("SMTP_STARTTLS", true),
             },
 

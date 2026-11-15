@@ -186,7 +186,7 @@ class User extends Authenticatable implements BannableContract
     public function getScopeLabelAttribute(): string
     {
         if ($this->isProvinceScope()) {
-            return 'Provinsi Sumatera Utara';
+            return 'Seluruh sekolah';
         }
 
         return $this->school?->name ?? 'Belum ditautkan ke sekolah';
