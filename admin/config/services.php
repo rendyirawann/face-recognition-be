@@ -66,13 +66,23 @@ return [
     | identifikasi acak — karena itu server memvalidasinya pada setiap request.
     |
     */
+    'telegram' => [
+        // Dipakai menyusun tautan t.me/<bot>?start=<token>. Tanpa ini
+        // tautannya tidak dapat dibentuk, dan tombolnya disembunyikan.
+        'bot_username' => env('TELEGRAM_BOT_USERNAME'),
+    ],
+
     'absensi_api' => [
         'url' => env('ABSENSI_API_URL', 'http://127.0.0.1:8080'),
         'public_url' => env('ABSENSI_API_PUBLIC_URL', env('ABSENSI_API_URL', 'http://127.0.0.1:8080')),
         'key_id' => env('ABSENSI_API_KEY_ID'),
         'secret' => env('ABSENSI_API_SECRET'),
         'timeout' => env('ABSENSI_API_TIMEOUT', 20),
-        'embedding_dim' => env('FACE_EMBEDDING_DIM', 512),
+        // Nilai cadangan 128, bukan 512: kolom `face_embeddings.embedding`
+        // bertipe VECTOR(128), dan cadangan yang tidak sebanding dengan
+        // kolomnya akan menghasilkan pendaftaran wajah yang ditolak server
+        // persis ketika env-nya kebetulan tidak terbaca.
+        'embedding_dim' => env('FACE_EMBEDDING_DIM', 128),
         'face_model_version' => env('FACE_MODEL_VERSION', 'faceapi-v2'),
         'docs_url' => env('ABSENSI_API_DOCS_URL', env('ABSENSI_API_PUBLIC_URL', 'http://127.0.0.1:8080').'/docs'),
     ],

@@ -28,6 +28,7 @@ class StudentGuardian extends Model
     protected $fillable = [
         'student_id', 'school_id', 'relation', 'full_name', 'phone', 'whatsapp',
         'email', 'telegram_chat_id', 'preferred_channel', 'is_primary', 'notify_enabled',
+        'telegram_link_token', 'telegram_linked_at',
     ];
 
     protected function casts(): array
@@ -35,6 +36,7 @@ class StudentGuardian extends Model
         return [
             'is_primary' => 'boolean',
             'notify_enabled' => 'boolean',
+            'telegram_linked_at' => 'datetime',
         ];
     }
 

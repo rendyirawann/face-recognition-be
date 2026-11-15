@@ -404,12 +404,60 @@
                                 @if ($g->email) &middot; {{ $g->email }} @endif
                             </div>
 
+                            {{-- Penautan Telegram.
+
+                                 Chat id tidak diketik operator. Wali menekan
+                                 tautan sekali pakai di bawah, dan webhook yang
+                                 mengisinya. Untuk 1.300 siswa, mengetiknya satu
+                                 per satu bukan pekerjaan yang akan selesai. --}}
+                            @php
+                                $bot = config('services.telegram.bot_username');
+                                $tautan = ($bot && $g->telegram_link_token)
+                                    ? 'https://t.me/'.$bot.'?start='.$g->telegram_link_token
+                                    : null;
+                            @endphp
+
+                            <div class="mt-2 pt-2 border-top border-gray-200">
+                                @if ($g->telegram_chat_id)
+                                    <span class="badge badge-light-success fs-9">Telegram tertaut</span>
+                                    @if ($g->telegram_linked_at)
+                                        <span class="text-muted fs-9">
+                                            sejak {{ $g->telegram_linked_at->timezone(config('app.timezone'))->format('d/m/Y') }}
+                                        </span>
+                                    @endif
+                                @elseif ($tautan)
+                                    <span class="text-muted fs-9 d-block mb-1">
+                                        Kirimkan tautan ini ke {{ $g->full_name }}. Sekali pakai.
+                                    </span>
+                                    <input type="text" readonly value="{{ $tautan }}"
+                                           onclick="this.select()"
+                                           class="form-control form-control-sm font-monospace fs-9">
+                                @elseif (! $bot)
+                                    <span class="text-muted fs-9">
+                                        Telegram belum tertaut. Isi <code>TELEGRAM_BOT_USERNAME</code>
+                                        agar tautan penautan dapat dibuat.
+                                    </span>
+                                @else
+                                    <span class="text-muted fs-9">Telegram belum tertaut.</span>
+                                @endif
+                            </div>
+
                             @can('manage_guardian')
-                                <form method="POST" action="{{ route('students.guardians.destroy', [$student, $g]) }}"
-                                      class="mt-2" onsubmit="return confirm('Hapus wali {{ addslashes($g->full_name) }}?');">
-                                    @csrf @method('DELETE')
-                                    <button class="btn btn-sm btn-light-danger py-1 px-3 fs-9">Hapus</button>
-                                </form>
+                                <div class="d-flex flex-wrap gap-2 mt-2">
+                                    @if (! $g->telegram_chat_id && $bot)
+                                        <form method="POST" action="{{ route('students.guardians.telegram', [$student, $g]) }}">
+                                            @csrf
+                                            <button class="btn btn-sm btn-light-primary py-1 px-3 fs-9">
+                                                {{ $g->telegram_link_token ? 'Buat tautan baru' : 'Buat tautan Telegram' }}
+                                            </button>
+                                        </form>
+                                    @endif
+                                    <form method="POST" action="{{ route('students.guardians.destroy', [$student, $g]) }}"
+                                          onsubmit="return confirm('Hapus wali {{ addslashes($g->full_name) }}?');">
+                                        @csrf @method('DELETE')
+                                        <button class="btn btn-sm btn-light-danger py-1 px-3 fs-9">Hapus</button>
+                                    </form>
+                                </div>
                             @endcan
                         </div>
                     @empty

@@ -185,20 +185,44 @@ Lalu masuk ke `https://absensi.sekolah.id/admin` dan isi lewat dashboard:
 4. **Wali murid** — pada tiap siswa, beserta **chat ID Telegram**-nya.
 5. **Perangkat Tablet** — daftarkan tiap tablet, catat kode pairing-nya.
 
-### Mendapatkan chat ID Telegram orang tua
+### Menautkan Telegram orang tua
 
-Saat ini chat ID diisi manual pada data wali murid. Cara orang tua
-mendapatkannya:
+Chat ID **tidak diketik operator**. Alurnya:
 
-1. Buka Telegram, cari bot sekolah, tekan **Start**.
-2. Kirim pesan apa saja ke bot.
-3. Operator membuka `https://api.telegram.org/bot<TOKEN>/getUpdates` dan
-   membaca `message.chat.id` pada pesan itu.
-4. Angka itu diisikan ke kolom *Telegram chat ID* milik wali tersebut.
+1. Buka halaman detail siswa, cari wali yang dituju, tekan **Buat Tautan
+   Telegram**. Tautan `https://t.me/<bot>?start=<token>` muncul di bawah
+   nama wali itu.
+2. Kirimkan tautan itu kepada walinya — lewat pesan wali kelas, surat,
+   atau kode QR yang ditempel di buku penghubung.
+3. Orang tua menekan tautan, Telegram terbuka, dan ia menekan **Start**.
+4. Chat ID-nya tersimpan sendiri, dan kartu walinya berubah menjadi
+   **Telegram tertaut**.
 
-> Untuk 1.300 siswa cara ini melelahkan. Webhook `/start` yang menangkap
-> chat ID secara otomatis **belum dibuat** — ini pekerjaan yang masih
-> tersisa, dan sebaiknya diselesaikan sebelum serah terima.
+Tokennya **sekali pakai dan hangus** setelah terpakai. Bila orang tua
+berganti nomor atau ponsel, buat tautan baru — tautan lama tidak akan
+berlaku lagi.
+
+Agar langkah 3 berfungsi, webhook harus didaftarkan ke Telegram **satu
+kali** setelah HTTPS aktif:
+
+```bash
+curl -X POST "https://api.telegram.org/bot<TOKEN>/setWebhook"   -d "url=https://absensi.sekolah.id/v1/notifications/telegram/webhook"   -d "secret_token=<isi TELEGRAM_WEBHOOK_SECRET>"
+```
+
+Periksa bahwa Telegram menerimanya:
+
+```bash
+curl "https://api.telegram.org/bot<TOKEN>/getWebhookInfo"
+```
+
+`pending_update_count` yang terus naik berarti server menolak update —
+hampir selalu karena `TELEGRAM_WEBHOOK_SECRET` di `.env` berbeda dengan
+yang didaftarkan ke Telegram.
+
+> Webhook **menolak seluruh update** bila `TELEGRAM_WEBHOOK_SECRET`
+> kosong. Itu disengaja: endpoint ini publik, dan yang terbuka bagi siapa
+> saja berarti orang asing dapat mengirim update palsu berisi token
+> tebakan lalu menautkan Telegram-nya ke wali mana pun.
 
 ---
 

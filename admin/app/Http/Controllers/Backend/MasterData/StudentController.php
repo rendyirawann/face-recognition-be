@@ -17,6 +17,7 @@ use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 use Yajra\DataTables\Facades\DataTables;
@@ -40,6 +41,7 @@ class StudentController extends Controller implements HasMiddleware
             new Middleware('can:delete_student', only: ['destroy']),
             new Middleware('can:manage_guardian', only: ['storeGuardian', 'updateGuardian', 'destroyGuardian']),
             new Middleware('can:send_recap', only: ['kirimRekap']),
+            new Middleware('can:manage_guardian', only: ['tautTelegram']),
         ];
     }
 
@@ -248,6 +250,30 @@ class StudentController extends Controller implements HasMiddleware
             $payload['periode'] ?? '',
             $jumlah,
         ));
+    }
+
+    /**
+     * Buat tautan sekali pakai untuk menautkan Telegram seorang wali.
+     *
+     * Tokennya acak dan tidak diturunkan dari data wali mana pun. Token
+     * yang dapat dihitung dari NISN atau nomor telepon sama saja dengan
+     * tidak ada token: siapa pun yang mengetahui data itu dapat
+     * menautkan Telegram-nya sendiri dan mulai menerima kabar kehadiran
+     * anak orang lain.
+     */
+    public function tautTelegram(Student $student, StudentGuardian $guardian): RedirectResponse
+    {
+        Tenant::authorizeSchool($student->school_id);
+
+        abort_unless($guardian->student_id === $student->id, 404);
+
+        $guardian->forceFill([
+            'telegram_link_token' => Str::random(32),
+        ])->save();
+
+        return back()->with('success',
+            'Tautan penautan Telegram dibuat untuk '.$guardian->full_name
+            .'. Kirimkan tautannya kepada wali yang bersangkutan.');
     }
 
     public function edit(Student $student): View

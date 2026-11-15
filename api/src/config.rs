@@ -102,6 +102,15 @@ pub struct NotifyConfig {
 
     pub telegram_bot_token: Option<String>,
 
+    /// Nilai yang dikirim Telegram pada header
+    /// `X-Telegram-Bot-Api-Secret-Token` di setiap webhook.
+    ///
+    /// Webhook bersifat publik — siapa pun dapat memanggil URL-nya. Tanpa
+    /// nilai ini, orang asing dapat mengirim update palsu berisi token
+    /// penautan yang ditebak dan menautkan Telegram-nya sendiri ke wali
+    /// mana pun. Kosong berarti webhook DITOLAK, bukan dibuka.
+    pub telegram_webhook_secret: Option<String>,
+
     pub smtp_host: Option<String>,
     pub smtp_port: u16,
     pub smtp_username: Option<String>,
@@ -214,6 +223,7 @@ impl Config {
                 wa_phone_number_id: env_str("WA_PHONE_NUMBER_ID"),
 
                 telegram_bot_token: env_str("TELEGRAM_BOT_TOKEN"),
+                telegram_webhook_secret: env_str("TELEGRAM_WEBHOOK_SECRET"),
 
                 smtp_host: env_str("SMTP_HOST"),
                 smtp_port: env_parse("SMTP_PORT", 587),

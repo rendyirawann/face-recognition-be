@@ -14,6 +14,7 @@
 //!   Jargon GO (aplikasi mobile):
 //!   /v1/me/*                               -> data milik pengguna sendiri
 //!   /v1/me/pkl, /v1/me/pkl/attendance      -> absensi siswa di tempat PKL
+//!   /v1/notifications/telegram/webhook     -> update dari Telegram (publik)
 //! ```
 
 pub mod attendance;
@@ -29,6 +30,7 @@ pub mod notifications;
 pub mod pkl;
 pub mod schools;
 pub mod students;
+pub mod telegram;
 pub mod users;
 
 use axum::Router;
@@ -47,6 +49,7 @@ pub fn v1() -> Router<AppState> {
         .merge(devices::public_router())
         .merge(kiosk::router())
         .merge(notifications::router())
+        .merge(telegram::public_router())
         .merge(dashboard::router())
         .merge(users::router())
         // --- Jargon GO (Super Apps) ---

@@ -139,6 +139,7 @@ services:
       WA_PROVIDER: ${WA_PROVIDER:-fonnte}
       WA_TOKEN: ${WA_TOKEN:-}
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      TELEGRAM_WEBHOOK_SECRET: ${TELEGRAM_WEBHOOK_SECRET:-}
       SMTP_HOST: ${SMTP_HOST:-}
       SMTP_PORT: ${SMTP_PORT:-587}
       ENABLE_SWAGGER: ${ENABLE_SWAGGER:-true}
@@ -194,6 +195,7 @@ services:
       ABSENSI_API_PUBLIC_URL: ${PUBLIC_URL:-http://localhost}
       FACE_EMBEDDING_DIM: ${FACE_EMBEDDING_DIM:-128}
       FACE_MODEL_VERSION: ${FACE_MODEL_VERSION:-faceapi-v2}
+      TELEGRAM_BOT_USERNAME: ${TELEGRAM_BOT_USERNAME:-}
     volumes:
       - admin-storage:/var/www/admin/storage
 
