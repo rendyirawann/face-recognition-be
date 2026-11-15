@@ -487,13 +487,17 @@
                             <div class="row g-2 mb-2">
                                 <div class="col-5">
                                     <select name="preferred_channel" class="form-select form-select-sm">
-                                        @foreach (\App\Models\StudentGuardian::CHANNELS as $c)
+                                        {{-- Kanal yang boleh dipilih, bukan seluruh CHANNELS:
+                                             formulir ini sempat terlewat saat WhatsApp dan
+                                             Email disembunyikan, dan masih menawarkan
+                                             WhatsApp sebagai pilihan pertama. --}}
+                                        @foreach (\App\Models\StudentGuardian::selectableChannels() as $c)
                                             <option value="{{ $c }}">{{ $c === 'none' ? 'Tidak dikirimi' : ucfirst($c) }}</option>
                                         @endforeach
                                     </select>
                                 </div>
                                 <div class="col-7">
-                                    <input type="text" name="whatsapp" class="form-control form-control-sm" placeholder="No. WhatsApp">
+                                    <input type="text" name="whatsapp" class="form-control form-control-sm" placeholder="No. HP (opsional)">
                                 </div>
                             </div>
                             <div class="row g-2 mb-3">
@@ -501,7 +505,7 @@
                                     <input type="email" name="email" class="form-control form-control-sm" placeholder="Email (opsional)">
                                 </div>
                                 <div class="col-5">
-                                    <input type="text" name="telegram_chat_id" class="form-control form-control-sm" placeholder="Telegram ID">
+                                    <input type="text" name="telegram_chat_id" class="form-control form-control-sm" placeholder="Chat ID (opsional)">
                                 </div>
                             </div>
                             <label class="form-check form-check-sm form-check-custom mb-3">
