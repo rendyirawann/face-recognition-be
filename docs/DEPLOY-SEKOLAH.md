@@ -138,7 +138,27 @@ Baris teratas harus `0026` (rekap berkala).
 
 ---
 
-## 5. Bersihkan cache izin — jangan dilewati
+## 5. Bersihkan cache Laravel — jangan dilewati
+
+```bash
+docker compose -f docker-compose.prod.yml exec admin php artisan optimize:clear
+```
+
+Laravel menyimpan daftar rute dan konfigurasi dalam cache. Setelah kode
+diperbarui, cache lama itu tetap dipakai sampai dibersihkan — dan
+gejalanya tidak berupa galat saat start, melainkan halaman yang tiba-tiba
+galat 500 begitu memanggil rute baru.
+
+Ini sungguh terjadi pada pemasangan pertama: tampilannya sudah versi
+baru, tetapi daftar rutenya masih versi lama, sehingga halaman detail
+siswa yang memanggil `route('students.recap')` galat 500 setiap kali
+dibuka. Rute lama menjawab normal, rute baru menjawab 404 — itu tanda
+pengenal cache rute yang basi.
+
+Jalankan **setiap kali** kode diperbarui, bukan hanya pada pemasangan
+pertama.
+
+## 5b. Bersihkan cache izin — jangan dilewati
 
 ```bash
 docker compose -f docker-compose.prod.yml exec admin \
@@ -358,6 +378,7 @@ mendaftarkan ulang seluruh wajah.
 |---|---|
 | Orang tua tidak menerima apa pun | `NOTIFY_ENABLED` masih `false`, atau chat ID wali kosong |
 | Tombol Kirim Rekap tidak muncul | `permission:cache-reset` belum dijalankan |
+| Halaman detail siswa galat 500 | Cache rute basi: jalankan `optimize:clear` |
 | Tabel baru tidak ditemukan | Image `api` belum dibangun ulang setelah migrasi baru |
 | Wajah orang lain tercatat hadir | `FACE_MODEL_VERSION` kembali ke `faceapi-v1`, atau ambang 0.82 |
 | Siswa sah gagal dikenali | Ambang terlalu tinggi, atau wajahnya didaftarkan pada versi model lama |
