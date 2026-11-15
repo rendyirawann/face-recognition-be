@@ -169,13 +169,16 @@ docker compose -f docker-compose.prod.yml exec admin \
 
 > **Ganti sandi superadmin sebelum melanjutkan.**
 >
-> Seeder membuat akun `superadmin@gmail.com` dengan sandi bawaan yang
+> Akun `superadmin` dibuat migrasi dengan sandi `Superadmin#2026` —
 > **sama persis di setiap pemasangan** dan tertulis di dalam repositori.
 > Server yang sudah dapat diakses dari internet dengan sandi itu masih
 > aktif sama saja dengan tidak punya sandi.
 >
-> Masuk ke `/admin`, buka **Profil → Keamanan**, ganti sandinya, lalu
-> lanjutkan ke langkah berikutnya.
+> Masuk ke `/admin`, ganti sandinya saat diminta, lalu lanjutkan.
+>
+> Migrasi 0023 juga membuat dua akun untuk SETIAP sekolah: `<NPSN>`
+> dengan sandi `Sekolah#2026` dan `admin.<NPSN>` dengan `Admin#2026`.
+> Keduanya ikut harus diganti. Daftar lengkapnya di [AKUN.md](AKUN.md).
 
 Lalu masuk ke `https://absensi.sekolah.id/admin` dan isi lewat dashboard:
 
