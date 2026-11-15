@@ -569,7 +569,16 @@
                 dikirim = true;
                 if (timer) { clearInterval(timer); timer = null; }
             
-                const jpeg = grabFrame().toDataURL('image/jpeg', 0.92);
+                // Diperkecil (sisi terpanjang 400 px, kualitas 0.7): tiga foto resolusi
+                // penuh membuat body JSON melewati batas WAF 128 KB dan ditolak 400.
+                // Descriptor dihitung dari video asli, jadi akurasi tidak terpengaruh.
+                const src = grabFrame();
+                const skala = Math.min(1, 400 / Math.max(src.width, src.height));
+                const kecil = document.createElement('canvas');
+                kecil.width = Math.round(src.width * skala);
+                kecil.height = Math.round(src.height * skala);
+                kecil.getContext('2d').drawImage(src, 0, 0, kecil.width, kecil.height);
+                const jpeg = kecil.toDataURL('image/jpeg', 0.7);
                 terkumpul[pose] = {
                     pose: pose,
                     image_base64: jpeg.split(',')[1],
