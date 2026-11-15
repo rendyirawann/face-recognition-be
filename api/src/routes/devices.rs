@@ -76,7 +76,7 @@ pub async fn list(
                d.classroom_id, c.name AS classroom_name, d.mode,
                (d.token_hash IS NOT NULL AND d.token_revoked_at IS NULL) AS is_paired,
                d.app_version, d.os_version, d.last_seen_at, d.last_ip,
-               (d.last_seen_at > NOW() - INTERVAL '10 minutes') AS is_online,
+               COALESCE(d.last_seen_at > NOW() - INTERVAL '10 minutes', FALSE) AS is_online,
                d.is_active, d.created_at
         FROM devices d
         JOIN schools s ON s.id = d.school_id
@@ -497,7 +497,7 @@ pub async fn fetch(state: &AppState, id: Uuid) -> ApiResult<Device> {
                d.classroom_id, c.name AS classroom_name, d.mode,
                (d.token_hash IS NOT NULL AND d.token_revoked_at IS NULL) AS is_paired,
                d.app_version, d.os_version, d.last_seen_at, d.last_ip,
-               (d.last_seen_at > NOW() - INTERVAL '10 minutes') AS is_online,
+               COALESCE(d.last_seen_at > NOW() - INTERVAL '10 minutes', FALSE) AS is_online,
                d.is_active, d.created_at
         FROM devices d
         JOIN schools s ON s.id = d.school_id
