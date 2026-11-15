@@ -112,7 +112,7 @@
 												<!--begin::Avatar-->
 												<div class="symbol symbol-50px me-5">
 													@auth
-													<img alt="Logo" src="{{ asset('assets/media/avatars/' . (Auth::user()->avatar ?? 'default.png')) }}" />
+													<img alt="Logo" src="{{ Auth::user()->avatar ? asset('storage/user/avatar/' . Auth::user()->avatar) : asset('assets/media/avatars/default.svg') }}" onerror="this.onerror=null;this.src='{{ asset('assets/media/avatars/default.svg') }}'" />
 													@endauth
 												</div>
 												<!--end::Avatar-->

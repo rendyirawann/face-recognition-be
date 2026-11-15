@@ -90,6 +90,17 @@
                                     </div>
                                 </td>
                             </tr>
+                        @empty
+                            <tr>
+                                <td colspan="7" class="text-center text-muted py-10 fs-7">
+                                    Belum ada perangkat terdaftar. Tanpa tablet, absensi wajah tidak dapat berjalan.
+                                </td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+                {{-- Modal di luar <table>: div/form di dalam <tbody> dirombak parser HTML. --}}
+                @foreach ($devices as $d)
 
                             {{-- Modal ubah per perangkat --}}
                             @can('update_device')
@@ -164,15 +175,7 @@
                                     </div>
                                 </div>
                             @endcan
-                        @empty
-                            <tr>
-                                <td colspan="7" class="text-center text-muted py-10 fs-7">
-                                    Belum ada perangkat terdaftar. Tanpa tablet, absensi wajah tidak dapat berjalan.
-                                </td>
-                            </tr>
-                        @endforelse
-                    </tbody>
-                </table>
+                @endforeach
             </div>
         </div>
     </div>

@@ -378,7 +378,7 @@
         <div class="d-flex align-items-center">
             @auth
                 <div class="symbol symbol-35px me-3">
-                    <img alt="Avatar" src="{{ asset('assets/media/avatars/' . (auth()->user()->avatar ?? 'default.png')) }}" />
+                    <img alt="Avatar" src="{{ auth()->user()->avatar ? asset('storage/user/avatar/' . auth()->user()->avatar) : asset('assets/media/avatars/default.svg') }}" onerror="this.onerror=null;this.src='{{ asset('assets/media/avatars/default.svg') }}'" />
                 </div>
                 <div class="d-flex flex-column flex-grow-1">
                     <span class="fw-bold fs-7 text-gray-800">{{ auth()->user()->name }}</span>

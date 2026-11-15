@@ -17,6 +17,10 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        // Tema admin memakai Bootstrap; tampilan bawaan Laravel (Tailwind)
+        // membuat ikon panah paginasi tampil raksasa.
+        \Illuminate\Pagination\Paginator::useBootstrapFive();
+
         // Paksa HTTPS di Production/VPS agar tidak terjadi Mixed Content
         if (config('app.env') === 'production') {
             URL::forceRootUrl(config('app.url'));

@@ -249,6 +249,14 @@
         });
     </script>
     <!--end::Javascript-->
+    <script>
+        // Modal yang ditulis di dalam sel tabel ikut terkena gaya tabel
+        // (lebar, padding, overflow) sehingga tampil berantakan. Pindahkan
+        // semuanya ke <body> sebelum dipakai.
+        document.querySelectorAll('.modal').forEach(function (m) {
+            if (m.parentElement !== document.body) document.body.appendChild(m);
+        });
+    </script>
     @stack('scripts')
 </body>
 <!--end::Body-->

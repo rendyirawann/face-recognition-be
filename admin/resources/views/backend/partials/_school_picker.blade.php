@@ -44,7 +44,8 @@
         @endif
 
         <span class="text-muted fs-8 text-nowrap">Sekolah</span>
-        <select name="school_id" class="form-select form-select-sm w-250px" onchange="this.form.submit()">
+        <select name="school_id" class="form-select form-select-sm w-300px" onchange="this.form.submit()"
+                data-control="select2" data-placeholder="Ketik nama sekolah atau NPSN">
             @if ($allowAll ?? true)
                 <option value="all" {{ $schoolId ? '' : 'selected' }}>
                     {{ $capdisId ? '— Seluruh sekolah wilayah ini —' : '— Seluruh Provinsi —' }}
@@ -61,4 +62,14 @@
 
         <span class="text-muted fs-9 text-nowrap">{{ $schools->count() }} sekolah</span>
     </form>
+@once
+    @push('scripts')
+    <script>
+        // select2 memicu event jQuery; pastikan formnya tetap terkirim.
+        $(function () {
+            $('select[name=school_id][data-control=select2]').on('select2:select', function () { this.form.submit(); });
+        });
+    </script>
+    @endpush
+    @endonce
 @endif

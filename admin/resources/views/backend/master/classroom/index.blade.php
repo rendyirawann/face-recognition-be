@@ -83,6 +83,21 @@
                                             </div>
                                         </td>
                                     </tr>
+                                @empty
+                                    <tr>
+                                        <td colspan="6" class="text-center text-muted py-10 fs-7">
+                                            @if (! $schoolId)
+                                                Pilih sekolah terlebih dahulu.
+                                            @else
+                                                Belum ada kelas pada tahun ajaran aktif.
+                                            @endif
+                                        </td>
+                                    </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                        {{-- Modal di luar <table>: div/form di dalam <tbody> dirombak parser HTML. --}}
+                        @foreach ($classrooms as $c)
 
                                     @can('update_classroom')
                                         <div class="modal fade" id="editKelas{{ $loop->index }}" tabindex="-1" aria-hidden="true">
@@ -145,19 +160,7 @@
                                             </div>
                                         </div>
                                     @endcan
-                                @empty
-                                    <tr>
-                                        <td colspan="6" class="text-center text-muted py-10 fs-7">
-                                            @if (! $schoolId)
-                                                Pilih sekolah terlebih dahulu.
-                                            @else
-                                                Belum ada kelas pada tahun ajaran aktif.
-                                            @endif
-                                        </td>
-                                    </tr>
-                                @endforelse
-                            </tbody>
-                        </table>
+                        @endforeach
                     </div>
                 </div>
             </div>
