@@ -58,7 +58,7 @@ class NotificationController extends Controller implements HasMiddleware
             'schoolId' => $schoolId,
             'schools' => Tenant::isProvinceScope() ? Tenant::selectableSchools() : collect(),
             'statuses' => NotificationOutbox::STATUSES,
-            'channels' => NotificationTemplate::CHANNELS,
+            'channels' => NotificationTemplate::selectableChannels(),
         ]);
     }
 
@@ -143,7 +143,7 @@ class NotificationController extends Controller implements HasMiddleware
                 ->orderBy('channel')
                 ->get(),
             'keys' => NotificationTemplate::KEYS,
-            'channels' => NotificationTemplate::CHANNELS,
+            'channels' => NotificationTemplate::selectableChannels(),
             'variables' => NotificationTemplate::VARIABLES,
         ]);
     }

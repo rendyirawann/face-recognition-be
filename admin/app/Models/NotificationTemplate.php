@@ -32,6 +32,23 @@ class NotificationTemplate extends Model
 
     public const CHANNELS = ['whatsapp', 'telegram', 'email'];
 
+    /**
+     * Kanal yang boleh dibuatkan template baru.
+     *
+     * CHANNELS tetap memuat seluruhnya: template WhatsApp yang sudah ada
+     * tetap tersimpan dan tetap dipakai pengirimnya. Yang dibatasi hanya
+     * pembuatan yang baru.
+     *
+     * @return list<string>
+     */
+    public static function selectableChannels(): array
+    {
+        return array_values(array_intersect(
+            self::CHANNELS,
+            config('services.notification.channels', ['telegram']),
+        ));
+    }
+
     public const KEYS = [
         'check_in' => 'Absen Masuk',
         'check_out' => 'Absen Pulang',

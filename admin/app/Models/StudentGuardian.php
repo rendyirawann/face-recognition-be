@@ -44,6 +44,32 @@ class StudentGuardian extends Model
 
     public const CHANNELS = ['whatsapp', 'telegram', 'email', 'none'];
 
+    /**
+     * Kanal yang boleh dipilih operator, beserta 'none'.
+     *
+     * CHANNELS di atas tetap memuat seluruhnya karena itulah yang
+     * diterima basis data; yang ini hanya menyaring tampilannya.
+     *
+     * Kanal yang sedang dipakai wali ini TIDAK ikut disaring: menyembunyikan
+     * pilihan yang sedang aktif akan membuat select kosong, dan menyimpan
+     * formulirnya diam-diam mengganti kanalnya.
+     *
+     * @return list<string>
+     */
+    public static function selectableChannels(?string $current = null): array
+    {
+        $aktif = config('services.notification.channels', ['telegram']);
+        $hasil = array_values(array_intersect(self::CHANNELS, $aktif));
+
+        if ($current && $current !== 'none' && ! in_array($current, $hasil, true)) {
+            $hasil[] = $current;
+        }
+
+        $hasil[] = 'none';
+
+        return $hasil;
+    }
+
     public function student(): BelongsTo
     {
         return $this->belongsTo(Student::class);

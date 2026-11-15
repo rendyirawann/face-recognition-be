@@ -183,8 +183,8 @@
                             <div class="mb-3">
                                 <label class="form-label">Kanal notifikasi</label>
                                 <select name="guardian_preferred_channel" class="form-select form-select-sm">
-                                    @foreach (\App\Models\StudentGuardian::CHANNELS as $c)
-                                        <option value="{{ $c }}" {{ old('guardian_preferred_channel', 'whatsapp') === $c ? 'selected' : '' }}>
+                                    @foreach (\App\Models\StudentGuardian::selectableChannels() as $c)
+                                        <option value="{{ $c }}" {{ old('guardian_preferred_channel', \App\Models\StudentGuardian::selectableChannels()[0]) === $c ? 'selected' : '' }}>
                                             {{ $c === 'none' ? 'Tidak dikirimi' : ucfirst($c) }}
                                         </option>
                                     @endforeach

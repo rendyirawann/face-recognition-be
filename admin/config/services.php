@@ -66,6 +66,18 @@ return [
     | identifikasi acak — karena itu server memvalidasinya pada setiap request.
     |
     */
+    'notification' => [
+        // Kanal yang boleh DIPILIH operator, dipisah koma.
+        //
+        // Kode pengirim WhatsApp dan Email tetap ada dan tetap berfungsi;
+        // yang dibatasi hanya pilihannya di layar. Wali yang kanalnya
+        // terlanjur WhatsApp tetap menerima pesan.
+        'channels' => array_values(array_filter(array_map(
+            'trim',
+            explode(',', (string) env('NOTIFY_CHANNELS', 'telegram'))
+        ))),
+    ],
+
     'telegram' => [
         // Dipakai menyusun tautan t.me/<bot>?start=<token>. Tanpa ini
         // tautannya tidak dapat dibentuk, dan tombolnya disembunyikan.

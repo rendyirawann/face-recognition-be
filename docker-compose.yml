@@ -196,6 +196,7 @@ services:
       FACE_EMBEDDING_DIM: ${FACE_EMBEDDING_DIM:-128}
       FACE_MODEL_VERSION: ${FACE_MODEL_VERSION:-faceapi-v2}
       TELEGRAM_BOT_USERNAME: ${TELEGRAM_BOT_USERNAME:-}
+      NOTIFY_CHANNELS: ${NOTIFY_CHANNELS:-telegram}
     volumes:
       - admin-storage:/var/www/admin/storage
 

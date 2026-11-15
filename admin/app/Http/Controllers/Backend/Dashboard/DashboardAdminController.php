@@ -51,6 +51,8 @@ class DashboardAdminController extends Controller
             'notifications' => $this->notificationBrief($schoolId, $date),
             'trend' => $this->trend($schoolId, $date),
             'recent' => $this->recentScans($schoolId, $date),
+            'perKelas' => $this->perKelas($schoolId, $date),
+            'perluPerhatian' => $this->perluPerhatian($schoolId, $date),
         ];
 
         if ($isProvince && $schoolId === null) {
@@ -71,6 +73,90 @@ class DashboardAdminController extends Controller
         }
 
         return view('backend.dashboard.index', $data);
+    }
+
+    /**
+     * Kehadiran per kelas pada tanggal itu, terburuk lebih dulu.
+     *
+     * Diurutkan menaik berdasarkan persentase kehadiran. Kepala sekolah
+     * membuka dasbor untuk mencari yang bermasalah, bukan untuk membaca
+     * seluruh daftar dari atas; kelas yang baik tidak membutuhkan
+     * perhatian siapa pun.
+     *
+     * @return \Illuminate\Support\Collection<int, object>
+     */
+    private function perKelas(?string $schoolId, Carbon $date)
+    {
+        if (! $schoolId) {
+            return collect();
+        }
+
+        return DB::table('classrooms as c')
+            ->leftJoin('students as s', function ($j) {
+                $j->on('s.current_classroom_id', '=', 'c.id')
+                  ->where('s.status', '=', 'aktif');
+            })
+            ->leftJoin('attendances as a', function ($j) use ($date) {
+                $j->on('a.student_id', '=', 's.id')
+                  ->where('a.attendance_date', '=', $date->toDateString());
+            })
+            ->where('c.school_id', $schoolId)
+            ->where('c.is_active', true)
+            ->whereNull('c.deleted_at')
+            ->groupBy('c.id', 'c.name')
+            ->havingRaw('COUNT(s.id) > 0')
+            ->selectRaw("
+                c.name AS kelas,
+                COUNT(s.id)                                      AS siswa,
+                COUNT(*) FILTER (WHERE a.status = 'hadir')       AS hadir,
+                COUNT(*) FILTER (WHERE a.status = 'terlambat')   AS terlambat,
+                COUNT(*) FILTER (WHERE a.status = 'alfa')        AS alfa,
+                COUNT(a.id)                                      AS tercatat,
+                ROUND(
+                    COUNT(*) FILTER (WHERE a.status IN ('hadir','terlambat','dispensasi'))
+                    * 100.0 / NULLIF(COUNT(s.id), 0)
+                , 1)                                             AS rate
+            ")
+            ->orderByRaw('rate ASC NULLS FIRST')
+            ->limit(8)
+            ->get();
+    }
+
+    /**
+     * Siswa dengan ketidakhadiran terbanyak dalam 30 hari terakhir.
+     *
+     * Yang dihitung alfa SAJA, bukan izin dan sakit. Siswa yang sering
+     * sakit bukan persoalan kedisiplinan, dan menyamakan keduanya akan
+     * memanggil orang tua yang salah.
+     *
+     * @return \Illuminate\Support\Collection<int, object>
+     */
+    private function perluPerhatian(?string $schoolId, Carbon $date)
+    {
+        if (! $schoolId) {
+            return collect();
+        }
+
+        return DB::table('attendances as a')
+            ->join('students as s', 's.id', '=', 'a.student_id')
+            ->leftJoin('classrooms as c', 'c.id', '=', 's.current_classroom_id')
+            ->where('a.school_id', $schoolId)
+            ->where('s.status', 'aktif')
+            ->whereBetween('a.attendance_date', [
+                $date->copy()->subDays(29)->toDateString(),
+                $date->toDateString(),
+            ])
+            ->groupBy('s.id', 's.full_name', 's.nisn', 'c.name')
+            ->havingRaw("COUNT(*) FILTER (WHERE a.status = 'alfa') > 0")
+            ->selectRaw("
+                s.id, s.full_name, s.nisn,
+                c.name AS kelas,
+                COUNT(*) FILTER (WHERE a.status = 'alfa')      AS alfa,
+                COUNT(*) FILTER (WHERE a.status = 'terlambat') AS terlambat
+            ")
+            ->orderByRaw('alfa DESC, terlambat DESC')
+            ->limit(8)
+            ->get();
     }
 
     private function resolveDate(Request $request): Carbon

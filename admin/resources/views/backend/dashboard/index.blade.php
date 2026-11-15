@@ -193,6 +193,101 @@
     </div>
 
     {{-- ===================== Tren + umpan langsung ===================== --}}
+    {{-- Kondisi absensi siswa.
+
+         Dasbor di atas menjawab "berapa yang hadir hari ini". Kepala
+         sekolah menanyakan hal yang berbeda: KELAS MANA yang bermasalah,
+         dan SISWA MANA yang perlu dipanggil. Keduanya tidak terjawab oleh
+         satu angka ringkasan, dan menjawabnya dengan membuka Rekap per
+         Kelas lalu membandingkan dengan tangan adalah pekerjaan yang
+         tidak akan dilakukan setiap hari. --}}
+    @if ($schoolId && ($perKelas->isNotEmpty() || $perluPerhatian->isNotEmpty()))
+        <div class="row g-5 mb-5">
+            <div class="col-xl-6">
+                <div class="card card-flush h-100 border border-gray-200">
+                    <div class="card-header pt-5">
+                        <h3 class="card-title fw-bold text-gray-900">Kehadiran per Kelas</h3>
+                        <div class="card-toolbar">
+                            <span class="text-muted fs-8">terendah lebih dulu</span>
+                        </div>
+                    </div>
+                    <div class="card-body pt-3">
+                        @forelse ($perKelas as $k)
+                            @php
+                                $rate = (float) ($k->rate ?? 0);
+                                $warna = $rate >= 90 ? 'success' : ($rate >= 75 ? 'warning' : 'danger');
+                            @endphp
+                            <div class="d-flex align-items-center gap-3 py-2 {{ ! $loop->last ? 'border-bottom border-gray-200' : '' }}">
+                                <div class="flex-grow-1">
+                                    <span class="fw-semibold text-gray-900 fs-7 d-block">{{ $k->kelas }}</span>
+                                    <span class="text-muted fs-9">
+                                        {{ $k->hadir }} hadir
+                                        @if ($k->terlambat > 0) &middot; {{ $k->terlambat }} terlambat @endif
+                                        @if ($k->alfa > 0) &middot; {{ $k->alfa }} alfa @endif
+                                        &middot; dari {{ $k->siswa }} siswa
+                                    </span>
+                                </div>
+                                <div class="w-100px">
+                                    <div class="jg-progress">
+                                        <div class="jg-progress__bar bg-{{ $warna }}" style="width: {{ min(100, $rate) }}%"></div>
+                                    </div>
+                                </div>
+                                <span class="fw-bold text-{{ $warna }} fs-7 w-50px text-end">{{ $rate }}%</span>
+                            </div>
+                        @empty
+                            <p class="text-muted fs-8 mb-0 py-4 text-center">
+                                Belum ada kelas dengan siswa aktif.
+                            </p>
+                        @endforelse
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-6">
+                <div class="card card-flush h-100 border border-gray-200">
+                    <div class="card-header pt-5">
+                        <h3 class="card-title fw-bold text-gray-900">Siswa Perlu Perhatian</h3>
+                        <div class="card-toolbar">
+                            <span class="text-muted fs-8">30 hari terakhir</span>
+                        </div>
+                    </div>
+                    <div class="card-body pt-3">
+                        {{-- Yang dihitung alfa SAJA, bukan izin dan sakit. Siswa
+                             yang sering sakit bukan persoalan kedisiplinan, dan
+                             menyamakan keduanya akan memanggil orang tua yang
+                             salah. --}}
+                        @forelse ($perluPerhatian as $s)
+                            <div class="d-flex align-items-center gap-3 py-2 {{ ! $loop->last ? 'border-bottom border-gray-200' : '' }}">
+                                <div class="flex-grow-1">
+                                    @can('view_student')
+                                        <a href="{{ route('students.show', $s->id) }}"
+                                           class="fw-semibold text-gray-900 text-hover-primary fs-7 d-block">{{ $s->full_name }}</a>
+                                    @else
+                                        <span class="fw-semibold text-gray-900 fs-7 d-block">{{ $s->full_name }}</span>
+                                    @endcan
+                                    <span class="text-muted fs-9">
+                                        {{ $s->kelas ?? '—' }} &middot; {{ $s->nisn }}
+                                    </span>
+                                </div>
+                                <div class="text-end">
+                                    <span class="badge badge-light-danger fs-9">{{ $s->alfa }} alfa</span>
+                                    @if ($s->terlambat > 0)
+                                        <span class="badge badge-light-warning fs-9 d-block mt-1">{{ $s->terlambat }} terlambat</span>
+                                    @endif
+                                </div>
+                            </div>
+                        @empty
+                            <p class="text-muted fs-8 mb-0 py-4 text-center">
+                                Tidak ada siswa dengan ketidakhadiran tanpa keterangan
+                                dalam 30 hari terakhir.
+                            </p>
+                        @endforelse
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endif
+
     <div class="row g-5 mb-5">
         <div class="col-xl-8">
             <div class="card card-flush h-100 border border-gray-200">

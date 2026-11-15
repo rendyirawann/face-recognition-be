@@ -8,7 +8,7 @@
         <div>
             <h2 class="fw-bold text-gray-900 mb-1">Notifikasi Wali Murid</h2>
             <span class="text-muted fs-7">
-                Pesan dikirim lewat WhatsApp, Telegram, atau Email sesuai kanal pilihan tiap wali.
+                Pesan dikirim lewat kanal pilihan tiap wali murid.
             </span>
         </div>
         @include('backend.partials._school_picker', ['schools' => $schools, 'schoolId' => $schoolId, 'allowAll' => false])
@@ -70,9 +70,9 @@
                             <label class="form-label">Kanal</label>
                             <select name="channel" class="form-select">
                                 <option value="">Ikuti pilihan tiap wali (disarankan)</option>
-                                <option value="whatsapp">Paksa WhatsApp</option>
-                                <option value="telegram">Paksa Telegram</option>
-                                <option value="email">Paksa Email</option>
+                                @foreach (config('services.notification.channels', ['telegram']) as $c)
+                                    <option value="{{ $c }}">Paksa {{ ucfirst($c) }}</option>
+                                @endforeach
                             </select>
                         </div>
 
