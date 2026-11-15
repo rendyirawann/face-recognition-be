@@ -158,6 +158,57 @@
                             </div>
                         </div>
 
+                        {{-- Jadwal rekap berkala. Kosong berarti rekap itu mati.
+                             Sekolah yang ingin rekap SAJA tanpa pesan per
+                             absensi tinggal mematikan centang di atas dan
+                             mengisi jadwal di sini. --}}
+                        <div class="separator my-4"></div>
+                        <label class="form-label fw-bold mb-1">Rekap berkala ke orang tua</label>
+                        <p class="text-muted fs-8 mb-3">
+                            Kosongkan untuk mematikan. Harian merangkum hari itu, mingguan
+                            tujuh hari terakhir, bulanan merangkum bulan lalu yang sudah selesai.
+                        </p>
+
+                        <div class="mb-3">
+                            <label class="form-label fs-8 mb-1">Harian &mdash; jam kirim</label>
+                            <input type="time" name="daily_recap_at" class="form-control form-control-sm"
+                                   value="{{ $policy->daily_recap_at ? substr($policy->daily_recap_at, 0, 5) : '' }}">
+                        </div>
+
+                        <div class="row g-2 mb-3">
+                            <div class="col-7">
+                                <label class="form-label fs-8 mb-1">Mingguan &mdash; hari</label>
+                                <select name="weekly_recap_day" class="form-select form-select-sm">
+                                    <option value="">Mati</option>
+                                    @foreach ([1 => 'Senin', 2 => 'Selasa', 3 => 'Rabu', 4 => 'Kamis', 5 => 'Jumat', 6 => 'Sabtu', 7 => 'Minggu'] as $n => $hari)
+                                        <option value="{{ $n }}" @selected((int) old('weekly_recap_day', $policy->weekly_recap_day) === $n)>{{ $hari }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="col-5">
+                                <label class="form-label fs-8 mb-1">jam</label>
+                                <input type="time" name="weekly_recap_at" class="form-control form-control-sm"
+                                       value="{{ $policy->weekly_recap_at ? substr($policy->weekly_recap_at, 0, 5) : '' }}">
+                            </div>
+                        </div>
+
+                        <div class="row g-2 mb-4">
+                            <div class="col-7">
+                                <label class="form-label fs-8 mb-1">Bulanan &mdash; tanggal</label>
+                                <select name="monthly_recap_day" class="form-select form-select-sm">
+                                    <option value="">Mati</option>
+                                    @for ($d = 1; $d <= 28; $d++)
+                                        <option value="{{ $d }}" @selected((int) old('monthly_recap_day', $policy->monthly_recap_day) === $d)>Tanggal {{ $d }}</option>
+                                    @endfor
+                                </select>
+                            </div>
+                            <div class="col-5">
+                                <label class="form-label fs-8 mb-1">jam</label>
+                                <input type="time" name="monthly_recap_at" class="form-control form-control-sm"
+                                       value="{{ $policy->monthly_recap_at ? substr($policy->monthly_recap_at, 0, 5) : '' }}">
+                            </div>
+                        </div>
+
                         @can('manage_notification_template')
                             <button class="btn btn-primary w-100">Simpan kebijakan</button>
                         @endcan

@@ -29,6 +29,8 @@ class NotificationPolicy extends Model
         'school_id', 'notify_on_check_in', 'notify_on_check_out', 'notify_on_late',
         'notify_on_absent', 'absent_notify_after', 'quiet_hours_start',
         'quiet_hours_end', 'daily_recap_at',
+        'weekly_recap_day', 'weekly_recap_at',
+        'monthly_recap_day', 'monthly_recap_at',
     ];
 
     protected function casts(): array

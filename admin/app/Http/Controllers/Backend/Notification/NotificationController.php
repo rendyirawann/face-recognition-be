@@ -198,6 +198,22 @@ class NotificationController extends Controller implements HasMiddleware
             'absent_notify_after' => ['required', 'date_format:H:i'],
             'quiet_hours_start' => ['nullable', 'date_format:H:i'],
             'quiet_hours_end' => ['nullable', 'date_format:H:i'],
+
+            // Jadwal rekap. Kosong berarti rekap itu mati.
+            'daily_recap_at' => ['nullable', 'date_format:H:i'],
+            'weekly_recap_day' => ['nullable', 'integer', 'between:1,7', 'required_with:weekly_recap_at'],
+            'weekly_recap_at' => ['nullable', 'date_format:H:i', 'required_with:weekly_recap_day'],
+            // 1-28, bukan 1-31: tanggal 29-31 tidak ada di setiap bulan, dan
+            // rekap yang melewatkan Februari baru disadari setahun kemudian.
+            // Basis data menolak di luar rentang ini juga.
+            'monthly_recap_day' => ['nullable', 'integer', 'between:1,28', 'required_with:monthly_recap_at'],
+            'monthly_recap_at' => ['nullable', 'date_format:H:i', 'required_with:monthly_recap_day'],
+        ], [
+            'weekly_recap_day.required_with' => 'Pilih hari rekap mingguan, atau kosongkan jamnya.',
+            'weekly_recap_at.required_with' => 'Isi jam rekap mingguan, atau kosongkan harinya.',
+            'monthly_recap_day.required_with' => 'Pilih tanggal rekap bulanan, atau kosongkan jamnya.',
+            'monthly_recap_at.required_with' => 'Isi jam rekap bulanan, atau kosongkan tanggalnya.',
+            'monthly_recap_day.between' => 'Tanggal rekap bulanan 1 sampai 28, agar ada di setiap bulan.',
         ]);
 
         Tenant::authorizeSchool($data['school_id']);
@@ -211,6 +227,11 @@ class NotificationController extends Controller implements HasMiddleware
             'absent_notify_after' => $data['absent_notify_after'],
             'quiet_hours_start' => $data['quiet_hours_start'] ?? null,
             'quiet_hours_end' => $data['quiet_hours_end'] ?? null,
+            'daily_recap_at' => $data['daily_recap_at'] ?? null,
+            'weekly_recap_day' => $data['weekly_recap_day'] ?? null,
+            'weekly_recap_at' => $data['weekly_recap_at'] ?? null,
+            'monthly_recap_day' => $data['monthly_recap_day'] ?? null,
+            'monthly_recap_at' => $data['monthly_recap_at'] ?? null,
         ]);
 
         return back()->with('success', 'Kebijakan notifikasi diperbarui.');
