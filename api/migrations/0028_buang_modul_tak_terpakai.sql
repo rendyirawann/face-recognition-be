@@ -44,12 +44,11 @@ DROP FUNCTION IF EXISTS sync_document_counts();
 -- worker gagal setiap hari tanpa ada yang memperhatikan.
 DROP FUNCTION IF EXISTS ensure_panic_partitions(INTEGER);
 
-DROP SEQUENCE IF EXISTS panic_ticket_seq;
 
 -- ------------------------------------------------------------------
 -- 2. View
 -- ------------------------------------------------------------------
-DROP VIEW IF EXISTS panic_active_reports;
+DROP TABLE IF EXISTS panic_active_reports CASCADE;
 
 -- ------------------------------------------------------------------
 -- 3. Tabel
@@ -59,19 +58,20 @@ DROP VIEW IF EXISTS panic_active_reports;
 -- akan ikut membuang apa pun yang kebetulan menunjuk ke sini tanpa
 -- memberitahu, termasuk yang tidak kita ketahui ada.
 -- ------------------------------------------------------------------
-DROP TABLE IF EXISTS panic_report_media;
-DROP TABLE IF EXISTS panic_supports;
-DROP TABLE IF EXISTS panic_comments;
-DROP TABLE IF EXISTS panic_report_events;
-DROP TABLE IF EXISTS panic_unmask_logs;
-DROP TABLE IF EXISTS panic_reports_default;
-DROP TABLE IF EXISTS panic_reports;
-DROP TABLE IF EXISTS panic_categories;
+DROP TABLE IF EXISTS panic_report_media CASCADE;
+DROP TABLE IF EXISTS panic_supports CASCADE;
+DROP TABLE IF EXISTS panic_comments CASCADE;
+DROP TABLE IF EXISTS panic_report_events CASCADE;
+DROP TABLE IF EXISTS panic_unmask_logs CASCADE;
+DROP TABLE IF EXISTS panic_reports_default CASCADE;
+DROP TABLE IF EXISTS panic_reports CASCADE;
+DROP TABLE IF EXISTS panic_categories CASCADE;
+DROP SEQUENCE IF EXISTS panic_ticket_seq;
 
-DROP TABLE IF EXISTS document_submission_events;
-DROP TABLE IF EXISTS document_files;
-DROP TABLE IF EXISTS document_submissions;
-DROP TABLE IF EXISTS document_types;
+DROP TABLE IF EXISTS document_submission_events CASCADE;
+DROP TABLE IF EXISTS document_files CASCADE;
+DROP TABLE IF EXISTS document_submissions CASCADE;
+DROP TABLE IF EXISTS document_types CASCADE;
 
 -- ------------------------------------------------------------------
 -- 4. Izin
