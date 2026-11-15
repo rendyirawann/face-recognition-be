@@ -274,7 +274,7 @@ async fn notify_late_streaks(
     }
 
     let days: i64 = sqlx::query_scalar(
-        "SELECT COALESCE((SELECT value::int FROM settings WHERE key = 'late_streak_days'), 3)",
+        "SELECT COALESCE((SELECT value::bigint FROM settings WHERE key = 'late_streak_days'), 3)::bigint",
     )
     .fetch_one(&state.db)
     .await?;
