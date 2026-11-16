@@ -22,9 +22,9 @@ Server menerima ketiga bentuk pada satu endpoint yang sama
 sebenarnya bisa masuk lewat keduanya. Yang membedakan hanya apa yang
 ditampilkan setelah masuk.
 
-Tablet kios **tidak memakai akun sama sekali** — ia dipasangkan dengan
-kode 8 digit dari menu **Perangkat Tablet**, lalu bekerja dengan device
-token.
+Tablet kios (APK Jargon GO Kios) membuka halaman dashboard, jadi ia
+**login dengan akun kios** sekolahnya (lihat bagian 3), lalu sekali saja
+dipasangkan dengan kode 8 digit dari menu **Perangkat Tablet**.
 
 ---
 
@@ -56,6 +56,7 @@ Dibuat migrasi `0023` untuk **setiap** sekolah yang ada di tabel
 |---|---|---|---|
 | Sekolah | `<NPSN>` | `Sekolah#2026` | Memantau seluruh murid sekolahnya |
 | Admin sekolah | `admin.<NPSN>` | `Admin#2026` | Mengelola data sekolahnya |
+| Tablet kios | `kios.<NPSN>` | `Kios#2026` | Hanya Absensi Wajah & Pendaftaran Wajah (migrasi `0029`) |
 
 Contoh, untuk sekolah ber-NPSN `10258745`:
 
@@ -67,6 +68,14 @@ username : admin.10258745    sandi : Admin#2026
 Keduanya terikat pada `users.school_id`, sehingga seluruh halaman
 dashboard otomatis terbatas pada sekolah itu saja — tanpa perlu
 menyaring apa pun dengan tangan.
+
+Akun **kios** setelah login langsung masuk ke Absensi Wajah, tanpa
+dashboard. Ia tidak bisa menghapus sampel wajah, mengoreksi absensi,
+atau mengelola perangkat. Tombol **Lepas Perangkat** di halaman absensi
+hanya melepas tablet itu sendiri; mencabut token tablet lain (misalnya
+yang hilang) dilakukan admin dari **Perangkat Tablet → Cabut**.
+Sekolah yang ditambahkan setelah migrasi `0029` belum punya akun kios;
+buat lewat menu Pengguna dengan peran `kios`.
 
 **Peran `admin` inilah yang dipakai BK** untuk mengirim rekap absensi ke
 orang tua.

@@ -10,6 +10,7 @@ use App\Models\School;
 use App\Models\Student;
 use App\Services\AbsensiApi;
 use App\Support\Tenant;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -30,8 +31,16 @@ use Illuminate\View\View;
  */
 class DashboardAdminController extends Controller
 {
-    public function index(Request $request): View
+    public function index(Request $request): View|RedirectResponse
     {
+        // Akun tablet tidak punya dashboard: satu-satunya pekerjaannya
+        // adalah absensi wajah. Dialihkan di sini, bukan di controller
+        // login, agar SEMUA jalan masuk (login, ganti sandi pertama, klik
+        // logo) berakhir di tempat yang sama.
+        if ($request->user()?->hasRole('kios')) {
+            return redirect()->route('biometric.scan');
+        }
+
         $date = $this->resolveDate($request);
         $schoolId = Tenant::currentSchoolId($request->query('school_id'));
         $isProvince = Tenant::isProvinceScope();

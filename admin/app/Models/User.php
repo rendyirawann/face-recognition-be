@@ -172,6 +172,7 @@ class User extends Authenticatable implements BannableContract
             'admin_dinas' => 'Admin Dinas',
             'kepala_sekolah' => 'Kepala Sekolah',
             'guru' => 'Guru',
+            'kios' => 'Tablet Kios',
             'staff_tu' => 'Staff TU',
             'siswa' => 'Siswa',
             'orang_tua' => 'Orang Tua',
