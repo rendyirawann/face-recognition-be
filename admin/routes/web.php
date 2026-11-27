@@ -23,6 +23,8 @@ use App\Http\Controllers\Backend\Settings\SettingController;
 use App\Http\Controllers\Backend\MasterData\SchoolController;
 use App\Http\Controllers\Backend\MasterData\ClassroomController;
 use App\Http\Controllers\Backend\MasterData\StudentController;
+use App\Http\Controllers\Backend\MasterData\StudentCardController;
+use App\Http\Controllers\Backend\Attendance\CardScanController;
 use App\Http\Controllers\Backend\Biometric\FaceEnrollmentController;
 use App\Http\Controllers\Backend\Attendance\AttendanceController;
 use App\Http\Controllers\Backend\Device\DeviceController;
@@ -155,6 +157,11 @@ Route::middleware(['auth', 'forbid-banned-user'])->group(function () {
     // --- Master: Siswa & wali murid ---
     Route::get('/admin/students/data', [StudentController::class, 'data'])->name('students.data');
     Route::get('/admin/students/classrooms', [StudentController::class, 'classroomsBySchool'])->name('students.classrooms');
+    // Kartu siswa (barcode/QR). Rute literal ini harus SEBELUM resource
+    // students agar 'cards' tidak diikat sebagai {student}.
+    Route::get('/admin/student-cards', [StudentCardController::class, 'index'])->name('student-cards.index');
+    Route::get('/admin/student-cards/print', [StudentCardController::class, 'print'])->name('student-cards.print');
+    Route::post('/admin/students/{student}/card/reissue', [StudentCardController::class, 'reissue'])->name('students.card.reissue')->whereUuid('student');
     Route::resource('/admin/students', StudentController::class)->names('students');
     Route::post('/admin/students/{student}/guardians/{guardian}/telegram', [StudentController::class, 'tautTelegram'])->name('students.guardians.telegram')->whereUuid(['student', 'guardian']);
     Route::post('/admin/students/{student}/rekap', [StudentController::class, 'kirimRekap'])->name('students.recap')->whereUuid('student');
@@ -168,6 +175,7 @@ Route::middleware(['auth', 'forbid-banned-user'])->group(function () {
     // /admin/biometric/{student}, kalau tidak Laravel akan mencoba
     // mengikat "scan" sebagai model Student dan menghasilkan 404.
     Route::get('/admin/biometric/scan', [FaceEnrollmentController::class, 'scan'])->name('biometric.scan');
+    Route::get('/admin/attendance-card/scan', [CardScanController::class, 'scan'])->name('attendance-card.scan');
     Route::get('/admin/biometric/{student}/capture', [FaceEnrollmentController::class, 'capture'])->name('biometric.capture')->whereUuid('student');
     Route::post('/admin/biometric/{student}', [FaceEnrollmentController::class, 'store'])->name('biometric.store')->whereUuid('student');
     Route::post('/admin/biometric/{student}/batch', [FaceEnrollmentController::class, 'storeBatch'])->name('biometric.store-batch')->whereUuid('student');

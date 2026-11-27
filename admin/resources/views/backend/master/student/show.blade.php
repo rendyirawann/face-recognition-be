@@ -344,6 +344,49 @@
                  tiap wali, dan keduanya terbaca persis di bawah tombol ini.
                  Petugas yang menekan tombol dapat langsung melihat ke mana
                  pesannya pergi. --}}
+            {{-- Kartu siswa: kode untuk absen dengan barcode/QR (migrasi 0030). --}}
+            @if ($student->card_code)
+                <div class="card card-flush border border-gray-200 mb-5">
+                    <div class="card-header pt-5">
+                        <h3 class="card-title fw-bold">Kartu Siswa</h3>
+                    </div>
+                    <div class="card-body pt-2">
+                        <div class="d-flex gap-4 align-items-center mb-4">
+                            <div id="kartuQr" data-kode="{{ $student->card_code }}" style="width:96px;height:96px;flex:none"></div>
+                            <div>
+                                <div class="text-muted fs-8">Kode kartu</div>
+                                <div class="fw-bold fs-5" style="font-family:Consolas,monospace;letter-spacing:.08em">{{ $student->card_code }}</div>
+                                @if ($student->card_issued_at)
+                                    <div class="text-muted fs-8">Diterbitkan {{ \Illuminate\Support\Carbon::parse($student->card_issued_at)->translatedFormat('d M Y') }}</div>
+                                @endif
+                            </div>
+                        </div>
+                        <div class="d-flex gap-2 mb-3">
+                            <a class="btn btn-sm btn-light-primary flex-grow-1" target="_blank"
+                               href="{{ route('student-cards.print', ['student_id' => $student->id, 'format' => 'qr']) }}">Cetak QR</a>
+                            <a class="btn btn-sm btn-light-primary flex-grow-1" target="_blank"
+                               href="{{ route('student-cards.print', ['student_id' => $student->id, 'format' => 'barcode']) }}">Cetak Barcode</a>
+                        </div>
+                        @can('update_student')
+                            <form method="POST" action="{{ route('students.card.reissue', $student) }}"
+                                  onsubmit="return confirm('Terbitkan kode kartu baru? Kartu lama langsung tidak berlaku dan harus dicetak ulang.')">
+                                @csrf
+                                <button class="btn btn-sm btn-light w-100">Terbitkan ulang kartu (kartu hilang)</button>
+                            </form>
+                        @endcan
+                    </div>
+                </div>
+                @push('scripts')
+                    <script src="{{ asset('assets/vendor/kartu/qrcode.min.js') }}"></script>
+                    <script>
+                        (function () {
+                            var el = document.getElementById('kartuQr');
+                            if (el && window.QRCode) new QRCode(el, { text: el.dataset.kode, width: 96, height: 96, correctLevel: QRCode.CorrectLevel.M });
+                        })();
+                    </script>
+                @endpush
+            @endif
+
             @can('send_recap')
                 <div class="card card-flush border border-gray-200 mb-5">
                     <div class="card-header pt-5">

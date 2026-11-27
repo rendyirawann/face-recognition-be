@@ -24,7 +24,7 @@ use uuid::Uuid;
 
 use crate::auth::AuthDevice;
 use crate::domain::attendance::{
-    AttendanceRecord, AttendanceStatus, RecognizeAction, RecognizeRequest, RecognizeResponse,
+    AttendanceRecord, AttendanceStatus, CardScanRequest, RecognizeAction, RecognizeRequest, RecognizeResponse,
     RecognizedStudent, ScanDirection,
 };
 use crate::error::{ApiError, ApiResult};
@@ -87,6 +87,7 @@ pub async fn recognize(
 ) -> ApiResult<RecognizeResponse> {
     let started = Instant::now();
     let face_cfg = &state.cfg.face;
+    let meta = LogMeta::face(state, &req);
 
     // --- 1. Versi model ------------------------------------------------
     // Embedding dari model berbeda tidak sebanding sama sekali; mencocokkannya
@@ -95,7 +96,7 @@ pub async fn recognize(
         return finish(
             state,
             device,
-            &req,
+            &meta,
             Outcome::rejected(
                 "model_mismatch",
                 format!(
@@ -129,7 +130,7 @@ pub async fn recognize(
         return finish(
             state,
             device,
-            &req,
+            &meta,
             Outcome::rejected(
                 "liveness_failed",
                 "Wajah tidak terverifikasi hidup. Hadapkan wajah langsung ke kamera, jangan foto.",
@@ -146,7 +147,7 @@ pub async fn recognize(
         return finish(
             state,
             device,
-            &req,
+            &meta,
             Outcome::rejected(
                 "clock_skew",
                 "Jam perangkat tidak sinkron dengan server. Aktifkan jam otomatis pada tablet.",
@@ -165,7 +166,7 @@ pub async fn recognize(
         return finish(
             state,
             device,
-            &req,
+            &meta,
             Outcome::rejected("replay_nonce", "Permintaan duplikat terdeteksi."),
             started,
         )
@@ -181,7 +182,7 @@ pub async fn recognize(
         return finish(
             state,
             device,
-            &req,
+            &meta,
             Outcome::rejected("not_school_day", "Hari ini bukan hari sekolah."),
             started,
         )
@@ -191,7 +192,7 @@ pub async fn recognize(
         return finish(
             state,
             device,
-            &req,
+            &meta,
             Outcome::rejected("holiday", format!("Hari ini libur: {name}.")),
             started,
         )
@@ -204,7 +205,7 @@ pub async fn recognize(
         return finish(
             state,
             device,
-            &req,
+            &meta,
             Outcome::rejected(
                 "no_enrollment",
                 "Belum ada data wajah siswa terdaftar di sekolah ini.",
@@ -230,7 +231,7 @@ pub async fn recognize(
         return finish(
             state,
             device,
-            &req,
+            &meta,
             Outcome {
                 action: RecognizeAction::NoMatch,
                 message: "Wajah tidak dikenali.".into(),
@@ -251,7 +252,7 @@ pub async fn recognize(
         return finish(
             state,
             device,
-            &req,
+            &meta,
             Outcome {
                 action: RecognizeAction::NoMatch,
                 message: "Wajah tidak dikenali. Coba lagi atau hubungi petugas.".into(),
@@ -275,7 +276,7 @@ pub async fn recognize(
         return finish(
             state,
             device,
-            &req,
+            &meta,
             Outcome {
                 action: RecognizeAction::LowConfidence,
                 message: "Wajah mirip dengan lebih dari satu siswa. Silakan absen manual ke petugas."
@@ -300,7 +301,7 @@ pub async fn recognize(
         return finish(
             state,
             device,
-            &req,
+            &meta,
             Outcome::rejected("student_inactive", "Data siswa tidak aktif. Hubungi petugas."),
             started,
         )
@@ -312,7 +313,7 @@ pub async fn recognize(
         return finish(
             state,
             device,
-            &req,
+            &meta,
             Outcome {
                 action: RecognizeAction::Rejected,
                 message: "Data wajah yang sama dikirim ulang. Lakukan pemindaian baru.".into(),
@@ -330,13 +331,129 @@ pub async fn recognize(
     }
 
     // --- 9. Tentukan arah lalu tulis -----------------------------------
+    let scan = ScanInfo {
+        method: "face",
+        similarity: Some(best.similarity),
+        margin: Some(margin),
+        candidates: candidates_scanned,
+    };
+    let outcome = record(state, device, student, &rule, today, now, local_now, req.direction, scan).await?;
+
+    finish(state, device, &meta, outcome, started).await
+}
+
+
+/// Absen dengan kartu siswa. Langkah 1-3 dan 7-8 absen wajah tidak
+/// berlaku (tidak ada vektor, tidak ada liveness); sisanya sama.
+pub async fn scan_card(
+    state: &AppState,
+    device: &AuthDevice,
+    req: CardScanRequest,
+) -> ApiResult<RecognizeResponse> {
+    let started = Instant::now();
+    let meta = LogMeta::card(&req);
+    let face_cfg = &state.cfg.face;
+
+    // Jam perangkat dan nonce: kartu yang sama memang boleh dipindai
+    // ulang, tetapi PERMINTAAN yang sama tidak boleh diputar ulang.
+    let now = Utc::now();
+    if (now - req.client_time).num_seconds().abs() > face_cfg.clock_skew_tolerance.as_secs() as i64 {
+        return finish(state, device, &meta, Outcome::rejected(
+            "clock_skew",
+            "Jam perangkat tidak sinkron dengan server. Aktifkan jam otomatis pada tablet.",
+        ), started).await;
+    }
+    let nonce_key = format!("{}:{}", device.id, req.nonce);
+    if !state.claim_nonce(&nonce_key, face_cfg.clock_skew_tolerance * 2).await? {
+        return finish(state, device, &meta,
+            Outcome::rejected("replay_nonce", "Permintaan duplikat terdeteksi."), started).await;
+    }
+
+    let today = util::today_wib();
+    let local_now = rules::local_time(now);
+    let rule = rules::resolve_rule(&state.db, device.school_id, device.classroom_id, today).await?;
+    if !rule.is_active_day(today) {
+        return finish(state, device, &meta,
+            Outcome::rejected("not_school_day", "Hari ini bukan hari sekolah."), started).await;
+    }
+    if let Some(name) = rules::holiday_name(&state.db, device.school_id, today).await? {
+        return finish(state, device, &meta,
+            Outcome::rejected("holiday", format!("Hari ini libur: {name}.")), started).await;
+    }
+
+    // Pemindai menambahkan spasi, huruf kecil, atau awalan "]Q1" pada
+    // sebagian merek. Yang dicocokkan hanya huruf dan angka.
+    let code: String = req
+        .code
+        .chars()
+        .filter(|c| c.is_ascii_alphanumeric())
+        .collect::<String>()
+        .to_ascii_uppercase();
+
+    // Dibatasi ke sekolah tablet ini: kartu sekolah lain tidak dikenali,
+    // walau kodenya kebetulan ada.
+    let id: Option<(Uuid,)> = sqlx::query_as(
+        "SELECT id FROM students WHERE card_code = $1 AND school_id = $2 AND deleted_at IS NULL",
+    )
+    .bind(&code)
+    .bind(device.school_id)
+    .fetch_optional(&state.db)
+    .await?;
+
+    let student = match id {
+        Some((sid,)) => load_student(state, sid, device.school_id).await?,
+        None => None,
+    };
+    let Some(student) = student else {
+        return finish(state, device, &meta, Outcome {
+            action: RecognizeAction::NoMatch,
+            message: "Kartu tidak dikenali. Kartu lama yang sudah diganti tidak berlaku lagi.".into(),
+            student: None,
+            attendance: None,
+            similarity: None,
+            margin: None,
+            candidates_scanned: 0,
+            reason: Some("unknown_card"),
+            event_type: "unknown",
+        }, started).await;
+    };
+
+    let scan = ScanInfo { method: "card", similarity: None, margin: None, candidates: 0 };
+    let outcome = record(state, device, student, &rule, today, now, local_now, req.direction, scan).await?;
+    finish(state, device, &meta, outcome, started).await
+}
+
+/// Cara siswa dikenali, dibawa ke pencatatan dan ke log.
+struct ScanInfo {
+    /// Nilai `check_in_method` / `check_out_method`: 'face' atau 'card'.
+    method: &'static str,
+    similarity: Option<f32>,
+    margin: Option<f32>,
+    candidates: usize,
+}
+
+/// Langkah 9, dipakai bersama oleh absen wajah dan absen kartu: tentukan
+/// arah (masuk/pulang) lalu tulis. Apa pun cara siswanya dikenali, aturan
+/// jam, terlambat, dan notifikasi orang tua harus sama persis.
+#[allow(clippy::too_many_arguments)]
+async fn record(
+    state: &AppState,
+    device: &AuthDevice,
+    student: StudentSnapshot,
+    rule: &EffectiveRule,
+    today: NaiveDate,
+    now: DateTime<Utc>,
+    local_now: chrono::NaiveTime,
+    direction_req: Option<ScanDirection>,
+    scan: ScanInfo,
+) -> ApiResult<Outcome> {
     let existing = load_today_attendance(state, today, student.id).await?;
     let already_checked_in = existing
         .as_ref()
         .map(|a| a.check_in_at.is_some())
         .unwrap_or(false);
 
-    let direction = match req.direction.unwrap_or(ScanDirection::Auto) {
+    let direction = match direction_req.unwrap_or(ScanDirection::Auto) {
         ScanDirection::CheckIn => Some(AutoDirection::CheckIn),
         ScanDirection::CheckOut => Some(AutoDirection::CheckOut),
         ScanDirection::Auto => match device.mode.as_str() {
@@ -363,9 +480,9 @@ pub async fn recognize(
             },
             student: Some(student.clone()),
             attendance: existing.clone(),
-            similarity: Some(best.similarity),
-            margin: Some(margin),
-            candidates_scanned,
+            similarity: scan.similarity,
+            margin: scan.margin,
+            candidates_scanned: scan.candidates,
             reason: Some("out_of_window"),
             event_type: "duplicate",
         },
@@ -383,9 +500,9 @@ pub async fn recognize(
                     ),
                     student: Some(student.clone()),
                     attendance: existing.clone(),
-                    similarity: Some(best.similarity),
-                    margin: Some(margin),
-                    candidates_scanned,
+                    similarity: scan.similarity,
+                    margin: scan.margin,
+                    candidates_scanned: scan.candidates,
                     reason: Some("already_checked_in"),
                     event_type: "duplicate",
                 }
@@ -397,7 +514,8 @@ pub async fn recognize(
                     &rule,
                     today,
                     now,
-                    best.similarity,
+                    scan.method,
+                    scan.similarity,
                 )
                 .await?;
                 let status = AttendanceStatus::parse(&record.status).unwrap_or(AttendanceStatus::Hadir);
@@ -406,9 +524,9 @@ pub async fn recognize(
                     message: greeting(&student.full_name, status, record.late_minutes),
                     student: Some(student.clone()),
                     attendance: Some(record),
-                    similarity: Some(best.similarity),
-                    margin: Some(margin),
-                    candidates_scanned,
+                    similarity: scan.similarity,
+                    margin: scan.margin,
+                    candidates_scanned: scan.candidates,
                     reason: None,
                     event_type: "check_in",
                 }
@@ -424,9 +542,9 @@ pub async fn recognize(
                     ),
                     student: Some(student.clone()),
                     attendance: existing.clone(),
-                    similarity: Some(best.similarity),
-                    margin: Some(margin),
-                    candidates_scanned,
+                    similarity: scan.similarity,
+                    margin: scan.margin,
+                    candidates_scanned: scan.candidates,
                     reason: Some("check_out_without_check_in"),
                     event_type: "rejected",
                 }
@@ -436,15 +554,15 @@ pub async fn recognize(
                     message: format!("{} sudah absen pulang.", student.full_name),
                     student: Some(student.clone()),
                     attendance: existing.clone(),
-                    similarity: Some(best.similarity),
-                    margin: Some(margin),
-                    candidates_scanned,
+                    similarity: scan.similarity,
+                    margin: scan.margin,
+                    candidates_scanned: scan.candidates,
                     reason: Some("already_checked_out"),
                     event_type: "duplicate",
                 }
             } else {
                 let record =
-                    write_check_out(state, device, &student, today, now, best.similarity).await?;
+                    write_check_out(state, device, &student, today, now, scan.method, scan.similarity).await?;
                 Outcome {
                     action: RecognizeAction::CheckedOut,
                     message: format!(
@@ -454,9 +572,9 @@ pub async fn recognize(
                     ),
                     student: Some(student.clone()),
                     attendance: Some(record),
-                    similarity: Some(best.similarity),
-                    margin: Some(margin),
-                    candidates_scanned,
+                    similarity: scan.similarity,
+                    margin: scan.margin,
+                    candidates_scanned: scan.candidates,
                     reason: None,
                     event_type: "check_out",
                 }
@@ -464,7 +582,7 @@ pub async fn recognize(
         }
     };
 
-    finish(state, device, &req, outcome, started).await
+    Ok(outcome)
 }
 
 // =====================================================================
@@ -478,7 +596,8 @@ async fn write_check_in(
     rule: &EffectiveRule,
     date: NaiveDate,
     now: DateTime<Utc>,
-    similarity: f32,
+    method: &str,
+    similarity: Option<f32>,
 ) -> ApiResult<AttendanceRecord> {
     let (status, late_minutes) = rule.classify_check_in(rules::local_time(now));
 
@@ -498,7 +617,7 @@ async fn write_check_in(
             $1, $2, $3, $4, $5,
             $6, $7, $8, $9,
             $10, $11, $12,
-            'face', $13, $14
+            $15, $13, $14
         )
         ON CONFLICT (attendance_date, student_id) DO UPDATE SET
             check_in_at         = EXCLUDED.check_in_at,
@@ -528,6 +647,7 @@ async fn write_check_in(
     .bind(late_minutes)
     .bind(device.id)
     .bind(similarity)
+    .bind(method)
     .fetch_optional(&mut *tx)
     .await?;
 
@@ -573,7 +693,8 @@ async fn write_check_out(
     student: &StudentSnapshot,
     date: NaiveDate,
     now: DateTime<Utc>,
-    similarity: f32,
+    method: &str,
+    similarity: Option<f32>,
 ) -> ApiResult<AttendanceRecord> {
     let mut tx = state.db.begin().await?;
 
@@ -581,7 +702,7 @@ async fn write_check_out(
         r#"
         UPDATE attendances SET
             check_out_at         = $3,
-            check_out_method     = 'face',
+            check_out_method     = $6,
             check_out_device_id  = $4,
             check_out_similarity = $5,
             duration_minutes     = GREATEST(0, EXTRACT(EPOCH FROM ($3 - check_in_at))::int / 60),
@@ -598,6 +719,7 @@ async fn write_check_out(
     .bind(now)
     .bind(device.id)
     .bind(similarity)
+    .bind(method)
     .fetch_optional(&mut *tx)
     .await?;
 
@@ -719,10 +841,40 @@ async fn is_replayed_embedding(
 // Log & respons
 // =====================================================================
 
+/// Isian log `attendance_events` yang berbeda antara wajah dan kartu.
+struct LogMeta {
+    liveness_score: Option<f32>,
+    model_version: Option<String>,
+    /// Hash tetap dicatat (untuk anti-replay), embedding-nya TIDAK.
+    embedding_hash: Option<Vec<u8>>,
+    client_time: DateTime<Utc>,
+}
+
+impl LogMeta {
+    fn face(state: &AppState, req: &RecognizeRequest) -> Self {
+        Self {
+            liveness_score: Some(req.liveness_score),
+            model_version: Some(req.model_version.clone()),
+            embedding_hash: (req.embedding.len() == state.cfg.face.embedding_dim)
+                .then(|| vector::hash_embedding(&vector::normalized(&req.embedding))),
+            client_time: req.client_time,
+        }
+    }
+
+    fn card(req: &CardScanRequest) -> Self {
+        Self {
+            liveness_score: None,
+            model_version: None,
+            embedding_hash: None,
+            client_time: req.client_time,
+        }
+    }
+}
+
 async fn finish(
     state: &AppState,
     device: &AuthDevice,
-    req: &RecognizeRequest,
+    meta: &LogMeta,
     outcome: Outcome,
     started: Instant,
 ) -> ApiResult<RecognizeResponse> {
@@ -733,13 +885,6 @@ async fn finish(
         RecognizeAction::CheckedIn | RecognizeAction::CheckedOut => "accepted",
         RecognizeAction::AlreadyRecorded => "ignored",
         _ => "rejected",
-    };
-
-    // Hash tetap dicatat (untuk anti-replay), embedding-nya TIDAK.
-    let embedding_hash = if req.embedding.len() == state.cfg.face.embedding_dim {
-        Some(vector::hash_embedding(&vector::normalized(&req.embedding)))
-    } else {
-        None
     };
 
     let log = sqlx::query(
@@ -759,10 +904,10 @@ async fn finish(
     .bind(outcome_label)
     .bind(outcome.reason)
     .bind(outcome.similarity)
-    .bind(req.liveness_score)
-    .bind(&req.model_version)
-    .bind(embedding_hash)
-    .bind(req.client_time)
+    .bind(meta.liveness_score)
+    .bind(meta.model_version.as_deref())
+    .bind(meta.embedding_hash.as_deref())
+    .bind(meta.client_time)
     .bind(latency_ms)
     .execute(&state.db)
     .await;

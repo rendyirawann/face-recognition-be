@@ -10,7 +10,7 @@ use axum::Router;
 use chrono::Utc;
 
 use crate::auth::AuthDevice;
-use crate::domain::attendance::{RecognizeRequest, RecognizeResponse};
+use crate::domain::attendance::{CardScanRequest, RecognizeRequest, RecognizeResponse};
 use crate::domain::device::{
     DeviceHeartbeatRequest, DeviceHeartbeatResponse, DeviceRuntimeConfig, RosterEntry, TodayWindows,
 };
@@ -24,6 +24,7 @@ use crate::util::{self, ApiResponse};
 pub fn router() -> Router<AppState> {
     Router::new()
         .route("/kiosk/recognize", post(recognize))
+        .route("/kiosk/card", post(card))
         .route("/kiosk/heartbeat", post(heartbeat))
         .route("/kiosk/roster", get(roster))
         .route("/kiosk/config", get(config))
@@ -64,6 +65,32 @@ pub async fn recognize(
         .await?;
 
     let result = recognition::recognize(&state, &device, body).await?;
+    let message = result.message.clone();
+    Ok(ApiResponse::with_message(result, message))
+}
+
+/// **Absen dengan kartu siswa** (barcode batang atau QR). Aturan jam,
+/// terlambat, dan notifikasi sama dengan absen wajah.
+#[utoipa::path(
+    post, path = "/v1/kiosk/card", tag = "Kios",
+    request_body = CardScanRequest,
+    security(("device" = [])),
+    responses(
+        (status = 200, description = "Hasil pemindaian kartu (periksa field `action`)", body = RecognizeResponse),
+        (status = 401, description = "Token perangkat tidak valid")
+    )
+)]
+pub async fn card(
+    State(state): State<AppState>,
+    device: AuthDevice,
+    ValidJson(body): ValidJson<CardScanRequest>,
+) -> ApiResult<ApiResponse<RecognizeResponse>> {
+    // Batas yang sama dengan absen wajah, dihitung bersama: satu tablet
+    // tetap satu antrean, apa pun cara siswanya absen.
+    state
+        .rate_limit(&format!("kiosk:{}", device.id), 120, std::time::Duration::from_secs(60))
+        .await?;
+    let result = recognition::scan_card(&state, &device, body).await?;
     let message = result.message.clone();
     Ok(ApiResponse::with_message(result, message))
 }

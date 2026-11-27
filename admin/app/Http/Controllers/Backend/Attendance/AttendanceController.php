@@ -115,6 +115,8 @@ class AttendanceController extends Controller implements HasMiddleware
             ->addColumn('method_label', fn ($row) => match ($row->check_in_method) {
                 'face' => '<i class="ki-duotone ki-user-tick text-success fs-5"></i> Wajah',
                 'manual' => '<i class="ki-duotone ki-pencil text-warning fs-5"></i> Manual',
+                'card' => '<i class="ki-duotone ki-scan-barcode text-primary fs-5"></i> Kartu',
+                'pkl' => '<i class="ki-duotone ki-geolocation text-info fs-5"></i> PKL',
                 'import' => 'Impor',
                 default => '-',
             })

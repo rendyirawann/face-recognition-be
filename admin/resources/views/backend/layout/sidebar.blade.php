@@ -102,6 +102,17 @@
                     </div>
                 @endif
 
+                @if ($can('view_student'))
+                    <div class="menu-item">
+                        <a class="menu-link {{ $is('admin/student-cards*') ? 'active' : '' }}" href="{{ route('student-cards.index') }}">
+                            <span class="menu-icon">
+                                <i class="ki-duotone ki-barcode fs-3"><span class="path1"></span><span class="path2"></span><span class="path3"></span><span class="path4"></span><span class="path5"></span><span class="path6"></span><span class="path7"></span><span class="path8"></span></i>
+                            </span>
+                            <span class="menu-title">Cetak Kartu Siswa</span>
+                        </a>
+                    </div>
+                @endif
+
                 @if ($can('view_classroom'))
                     <div class="menu-item">
                         <a class="menu-link {{ $is('admin/classrooms*') ? 'active' : '' }}" href="{{ route('classrooms.index') }}">
@@ -141,6 +152,17 @@
                                 <i class="ki-duotone ki-focus fs-3"><span class="path1"></span><span class="path2"></span><span class="path3"></span></i>
                             </span>
                             <span class="menu-title">Absensi Wajah</span>
+                        </a>
+                    </div>
+                @endif
+
+                @if ($can('operate_face_kiosk'))
+                    <div class="menu-item">
+                        <a class="menu-link {{ request()->routeIs('attendance-card.scan') ? 'active' : '' }}" href="{{ route('attendance-card.scan') }}">
+                            <span class="menu-icon">
+                                <i class="ki-duotone ki-scan-barcode fs-3"><span class="path1"></span><span class="path2"></span><span class="path3"></span><span class="path4"></span><span class="path5"></span><span class="path6"></span><span class="path7"></span><span class="path8"></span></i>
+                            </span>
+                            <span class="menu-title">Absensi Kartu</span>
                         </a>
                     </div>
                 @endif

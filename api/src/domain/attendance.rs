@@ -118,6 +118,21 @@ pub struct RecognizeRequest {
     pub classroom_id: Option<Uuid>,
 }
 
+/// Absen dengan kartu siswa (barcode batang atau QR).
+///
+/// Isinya hanya kode kartu yang dibaca pemindai. Kode itu acak, bukan
+/// NISN — lihat migrasi 0030.
+#[derive(Debug, Deserialize, Validate, ToSchema)]
+pub struct CardScanRequest {
+    /// Isi barcode/QR kartu, apa adanya.
+    #[validate(length(min = 4, max = 64, message = "kode kartu tidak valid"))]
+    pub code: String,
+    pub client_time: DateTime<Utc>,
+    #[validate(length(min = 8, max = 100, message = "nonce minimal 8 karakter"))]
+    pub nonce: String,
+    pub direction: Option<ScanDirection>,
+}
+
 #[derive(Debug, Serialize, ToSchema)]
 pub struct RecognizeResponse {
     /// `true` bila wajah dikenali dan absensi tercatat/diperbarui.
